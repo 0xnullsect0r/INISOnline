@@ -1,0 +1,14 @@
+<Project Sdk="Godot.NET.Sdk/4.4.0">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Godot mobile (iOS/Android) .NET export requires net8.0. -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>enable</Nullable>
+    <RootNamespace>INISOnline</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The client uses the shared rules engine for offline / hotseat / LAN host. -->
+    <ProjectReference Include="..\Inis.Core\Inis.Core.csproj" />
+  </ItemGroup>
+</Project>

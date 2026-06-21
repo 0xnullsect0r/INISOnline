@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/engine/">
+    <Project Path="Inis.Core/Inis.Core.csproj" />
+    <Project Path="Inis.Core.Tests/Inis.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/server/">
+    <Project Path="INISServer/INISServer.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,35 @@
+using Inis.Core.Data;
+using Inis.Core.Model;
+using Xunit;
+
+namespace Inis.Core.Tests;
+
+public class GameDataTests
+{
+    [Fact]
+    public void Catalogue_Loads_From_Embedded_Resources()
+    {
+        var data = GameData.Default;
+        Assert.NotEmpty(data.Cards);
+        Assert.NotEmpty(data.Territories);
+    }
+
+    [Fact]
+    public void Every_Card_Has_Unique_Id()
+    {
+        var ids = GameData.Default.Cards.Select(c => c.Id).ToList();
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+    }
+
+    [Fact]
+    public void Advantage_Cards_Reference_Existing_Territories()
+    {
+        var data = GameData.Default;
+        var territoryIds = data.Territories.Select(t => t.Id).ToHashSet();
+        foreach (var adv in data.Cards.Where(c => c.Type == CardType.Advantage))
+        {
+            Assert.NotNull(adv.TerritoryId);
+            Assert.Contains(adv.TerritoryId!, territoryIds);
+        }
+    }
+}

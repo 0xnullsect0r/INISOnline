@@ -1,0 +1,32 @@
+// PROVISIONAL DATA — base game cards.
+// Action card *names* are taken from public references; effect TEXT is re-worded
+// (not Matagot's verbatim copy) and exact COUNTS must be verified against the
+// rulebook in Phase 1 (see docs/rules.md). The full 30 Epic Tales and 16 Advantage
+// cards are stubbed here and completed during the rules transcription pass.
+// Flagged for user spot-check.
+[
+  // ----- Action cards (deeds / season cards). Base set: 23 cards, 17 types. -----
+  { "id": "action.clash",        "type": "Action", "name": "Clash",        "count": 2, "text": "Trigger a clash in a territory where you are present.", "art": "cards/action/clash.png" },
+  { "id": "action.warlord",      "type": "Action", "name": "Warlord",      "count": 1, "text": "Start or strengthen a clash; place one exposed clan and choose who acts next.", "art": "cards/action/warlord.png" },
+  { "id": "action.conquest",     "type": "Action", "name": "Conquest",     "count": 1, "text": "Move clans into an adjacent territory you do not control.", "art": "cards/action/conquest.png" },
+  { "id": "action.migration",    "type": "Action", "name": "Migration",    "count": 2, "text": "Move any number of your clans between adjacent territories.", "art": "cards/action/migration.png" },
+  { "id": "action.exploration",  "type": "Action", "name": "Exploration",  "count": 1, "text": "Add a new territory tile to the island.", "art": "cards/action/exploration.png" },
+  { "id": "action.new_clans",    "type": "Action", "name": "New Clans",     "count": 2, "text": "Add new clans to a territory where you are present.", "art": "cards/action/new_clans.png" },
+  { "id": "action.citadel",      "type": "Action", "name": "Citadel",       "count": 2, "text": "Build a Citadel where you are present; gain that territory's Advantage card if unplayed.", "art": "cards/action/citadel.png" },
+  { "id": "action.sanctuary",    "type": "Action", "name": "Sanctuary",     "count": 2, "text": "Build a Sanctuary where you are present, then draw an Epic Tale.", "art": "cards/action/sanctuary.png" },
+  { "id": "action.bard",         "type": "Action", "name": "Bard",          "count": 2, "text": "Draw an Epic Tale, or gain a Deed after removing an opposing clan with a maneuver.", "art": "cards/action/bard.png" },
+  { "id": "action.druid",        "type": "Action", "name": "Druid",         "count": 1, "text": "Look at the discarded Action cards and add one to your hand.", "art": "cards/action/druid.png" },
+  { "id": "action.festival",     "type": "Action", "name": "Festival",      "count": 1, "text": "No clashes may be triggered in a chosen territory until your next turn.", "art": "cards/action/festival.png" },
+  { "id": "action.trade",        "type": "Action", "name": "Trade",         "count": 1, "text": "Exchange clans / share presence between two adjacent territories.", "art": "cards/action/trade.png" },
+  { "id": "action.new_alliance", "type": "Action", "name": "New Alliance",  "count": 1, "text": "Bring your clans together; reinforce a territory where you are present.", "art": "cards/action/new_alliance.png" },
+  { "id": "action.gift",         "type": "Action", "name": "Gift",          "count": 1, "text": "Give a card to another player to gain a Deed.", "art": "cards/action/gift.png" },
+  { "id": "action.sage",         "type": "Action", "name": "Sage",          "count": 1, "text": "Draw cards and refine your hand.", "art": "cards/action/sage.png" },
+
+  // ----- Epic Tale cards (base set: 30). STUB — only a couple modelled so far. -----
+  { "id": "epic.king_and_land",  "type": "EpicTale", "name": "The King and the Land", "count": 1, "text": "Bound to the Brenn; resolves with leadership effects.", "art": "cards/epic/king_and_land.png" },
+  { "id": "epic.geis",           "type": "EpicTale", "name": "Geis",                  "count": 1, "text": "Impose a sacred prohibition on a rival.", "art": "cards/epic/geis.png" },
+  { "id": "epic.master_craftsman","type": "EpicTale","name": "Master Craftsman",      "count": 1, "text": "Build or upgrade with reduced cost.", "art": "cards/epic/master_craftsman.png" },
+
+  // ----- Advantage cards (base set: 16, one per territory). STUB — one modelled. -----
+  { "id": "advantage.plains_of_battle", "type": "Advantage", "name": "Plains of Battle", "count": 1, "territoryId": "territory.plains_of_battle", "text": "Chieftain advantage: strengthen your clans during clashes here.", "art": "cards/advantage/plains_of_battle.png" }
+]

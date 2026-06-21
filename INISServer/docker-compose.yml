@@ -1,0 +1,37 @@
+# INISServer — single-compose deployment.
+# The API is published on host port 80 for the upstream reverse proxy that fronts
+# inis.aricummings.com (it terminates TLS and forwards to this service).
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: inis
+      POSTGRES_USER: inis
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inis}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inis"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  server:
+    build:
+      context: ..
+      dockerfile: INISServer/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=inis;Username=inis;Password=${POSTGRES_PASSWORD:-inis}"
+      # Generate a strong key for production, e.g. `openssl rand -base64 48`.
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-dev-only-insecure-signing-key-change-me-please-32+chars}
+    ports:
+      - "80:80"
+
+volumes:
+  pgdata:
