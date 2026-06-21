@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b8b8b8"/><stop offset="1" stop-color="#8c8c8c"/></linearGradient></defs>
+  <polygon points="150.0,12.0 269.5,81.0 269.5,219.0 150.0,288.0 30.5,219.0 30.5,81.0" fill="url(#g)" stroke="#2f4f4f" stroke-width="6" stroke-linejoin="round"/>
+  
+  <rect x="40" y="206" width="220" height="40" rx="10" fill="#2f4f4f" opacity="0.82"/>
+  <text x="150" y="233" text-anchor="middle" font-family="Georgia, serif" font-size="20" fill="#efe2c0">Mountains</text>
+</svg>

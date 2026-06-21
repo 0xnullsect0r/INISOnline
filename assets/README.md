@@ -1,30 +1,33 @@
-# Assets pipeline
+# Assets
 
-Source art is authored as **SVG** here, then exported to PNG/atlases consumed by the
-Godot client. Art is **original** (Celtic-styled), not Matagot's.
+All art is **original** (Celtic-styled SVG), not Matagot's. **Godot 4 imports SVG
+natively** (rasterizing on import with a configurable scale), so there is **no
+external rasterizer step** — SVGs are placed directly under `game/art/` and consumed
+by the client.
 
-## Layout
+## Where art lives
 ```
-assets/
-  svg/
-    tiles/        # 16 territory tiles (hex)
-    cards/
-      action/     # action card faces
-      epic/       # epic tale faces
-      advantage/  # advantage faces
-      back/       # card backs
-    pieces/       # clan figures, sanctuary, citadel, capital
-    tokens/       # brenn, pretender, deed, trigger
-    ui/           # buttons, panels, knotwork frames, icons
-  export/         # generated PNG/atlas output (gitignored)
+game/art/
+  cards/{action,epic,advantage}/  # one SVG per card (generated)
+  cards/back/card_back.svg
+  tiles/                          # one SVG per territory tile (generated)
+  pieces/                         # clan_{color}, sanctuary, citadel, capital
+  tokens/                         # brenn, pretender, deed, trigger
+  ui/                             # button, panel, gear
+  board/                          # board_bg
 ```
 
-Card faces are generated from templates + the canonical text in
-`Inis.Core/Data/cards.json`, so art and rules never drift.
+## Generated vs authored
+- **Cards and tiles are generated** from the canonical catalogue
+  (`Inis.Core/Data/cards.json`, `territories.json`) by `tools/gen-art.mjs`, so art
+  and rules never drift. Provisional (unverified) cards are watermarked.
+  Regenerate after editing the data:
+  ```bash
+  node tools/gen-art.mjs
+  ```
+- **Pieces, tokens, UI and board** are hand-authored SVGs under `game/art/`.
 
-## Export
-`tools/export-assets.sh` rasterizes SVG → PNG at target DPIs into `export/` and into
-the Godot import dirs. (Phase 1 wires this up; requires `rsvg-convert` or `inkscape`.)
+File ids match data ids (e.g. `cards/action/battle.svg` ↔ `action.battle`).
 
-## Naming
-File ids match the data ids, e.g. `cards/action/clash.png` ↔ `action.clash`.
+This `assets/` folder is reserved for higher-fidelity source art (e.g. layered
+illustrations) added later; the shipping art currently lives under `game/art/`.

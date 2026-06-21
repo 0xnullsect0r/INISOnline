@@ -22,6 +22,29 @@ public class GameDataTests
     }
 
     [Fact]
+    public void Base_Game_Composition_Totals_Are_Correct()
+    {
+        var data = GameData.Default;
+        int Total(CardType t) => data.Cards.Where(c => c.Type == t).Sum(c => c.Count);
+
+        Assert.Equal(16, data.Territories.Count);
+        Assert.Equal(23, Total(CardType.Action));
+        Assert.Equal(16, Total(CardType.Advantage));
+        Assert.Equal(30, Total(CardType.EpicTale));
+    }
+
+    [Fact]
+    public void Every_Territory_Has_A_Matching_Advantage_Card()
+    {
+        var data = GameData.Default;
+        var advTerritoryIds = data.Cards
+            .Where(c => c.Type == CardType.Advantage)
+            .Select(c => c.TerritoryId).ToHashSet();
+        foreach (var t in data.Territories)
+            Assert.Contains(t.Id, advTerritoryIds);
+    }
+
+    [Fact]
     public void Advantage_Cards_Reference_Existing_Territories()
     {
         var data = GameData.Default;

@@ -24,4 +24,7 @@ public sealed record TerritoryDefinition
 
     /// <summary>Relative path (under assets) to the tile art.</summary>
     public string? Art { get; init; }
+
+    /// <summary>True once confirmed against the official rulebook (see docs/rules.md).</summary>
+    public bool Verified { get; init; }
 }

@@ -32,5 +32,11 @@ public sealed record CardDefinition
     /// <summary>Relative path (under assets) to the card's art, if any.</summary>
     public string? Art { get; init; }
 
+    /// <summary>
+    /// True once the name/text/count have been confirmed against the official
+    /// rulebook. False entries are provisional and tracked in docs/rules.md.
+    /// </summary>
+    public bool Verified { get; init; }
+
     public string ResolvedEffectId => EffectId ?? Id;
 }

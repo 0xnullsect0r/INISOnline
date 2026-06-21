@@ -1,22 +1,22 @@
-// PROVISIONAL DATA — base game (16 territory tiles).
-// Ids and structure are stable and drive the engine + asset pipeline.
-// Display names, terrain assignments and advantage links must be verified against
-// the official rulebook in Phase 1 (see docs/rules.md). Flagged for user spot-check.
+// INIS base game — 16 territory tiles.
+// "verified": true  -> name confirmed against public INIS sources.
+// "verified": false -> provisional, pending physical-rulebook spot-check (docs/rules.md).
+// Terrain is a visual classification for art; it does not change core rules.
 [
-  { "id": "territory.plains_of_battle", "name": "Plains of Battle",  "terrain": "Plains",   "advantageCardId": "advantage.plains_of_battle",  "art": "tiles/plains_of_battle.png" },
-  { "id": "territory.high_plateau",     "name": "High Plateau",      "terrain": "Mountain", "advantageCardId": "advantage.high_plateau",      "art": "tiles/high_plateau.png" },
-  { "id": "territory.deep_forest",      "name": "Deep Forest",       "terrain": "Forest",   "advantageCardId": "advantage.deep_forest",       "art": "tiles/deep_forest.png" },
-  { "id": "territory.misty_bog",        "name": "Misty Bog",         "terrain": "Bog",      "advantageCardId": "advantage.misty_bog",         "art": "tiles/misty_bog.png" },
-  { "id": "territory.sacred_grove",     "name": "Sacred Grove",      "terrain": "Forest",   "advantageCardId": "advantage.sacred_grove",      "startsWithSanctuary": true, "art": "tiles/sacred_grove.png" },
-  { "id": "territory.rolling_hills",    "name": "Rolling Hills",     "terrain": "Plains",   "advantageCardId": "advantage.rolling_hills",     "art": "tiles/rolling_hills.png" },
-  { "id": "territory.stone_circle",     "name": "Stone Circle",      "terrain": "Plains",   "advantageCardId": "advantage.stone_circle",      "startsWithSanctuary": true, "art": "tiles/stone_circle.png" },
-  { "id": "territory.windswept_cliffs", "name": "Windswept Cliffs",  "terrain": "Coast",    "advantageCardId": "advantage.windswept_cliffs",  "art": "tiles/windswept_cliffs.png" },
-  { "id": "territory.river_delta",      "name": "River Delta",       "terrain": "Bog",      "advantageCardId": "advantage.river_delta",       "art": "tiles/river_delta.png" },
-  { "id": "territory.iron_hills",       "name": "Iron Hills",        "terrain": "Mountain", "advantageCardId": "advantage.iron_hills",        "art": "tiles/iron_hills.png" },
-  { "id": "territory.golden_meadow",    "name": "Golden Meadow",     "terrain": "Plains",   "advantageCardId": "advantage.golden_meadow",     "art": "tiles/golden_meadow.png" },
-  { "id": "territory.shadowed_vale",    "name": "Shadowed Vale",     "terrain": "Forest",   "advantageCardId": "advantage.shadowed_vale",     "art": "tiles/shadowed_vale.png" },
-  { "id": "territory.salt_marsh",       "name": "Salt Marsh",        "terrain": "Bog",      "advantageCardId": "advantage.salt_marsh",        "art": "tiles/salt_marsh.png" },
-  { "id": "territory.rugged_coast",     "name": "Rugged Coast",      "terrain": "Coast",    "advantageCardId": "advantage.rugged_coast",      "art": "tiles/rugged_coast.png" },
-  { "id": "territory.ancient_peak",     "name": "Ancient Peak",      "terrain": "Mountain", "advantageCardId": "advantage.ancient_peak",      "art": "tiles/ancient_peak.png" },
-  { "id": "territory.kings_wood",       "name": "King's Wood",       "terrain": "Forest",   "advantageCardId": "advantage.kings_wood",        "art": "tiles/kings_wood.png" }
+  { "id": "territory.meadows",      "name": "Meadows",              "terrain": "Plains",   "advantageCardId": "advantage.meadows",      "verified": true,  "art": "tiles/meadows.svg" },
+  { "id": "territory.forest",       "name": "Forest",               "terrain": "Forest",   "advantageCardId": "advantage.forest",       "verified": true,  "art": "tiles/forest.svg" },
+  { "id": "territory.mountains",    "name": "Mountains",            "terrain": "Mountain", "advantageCardId": "advantage.mountains",    "verified": true,  "art": "tiles/mountains.svg" },
+  { "id": "territory.highlands",    "name": "Highlands",            "terrain": "Mountain", "advantageCardId": "advantage.highlands",    "verified": true,  "art": "tiles/highlands.svg" },
+  { "id": "territory.misty_lands",  "name": "Misty Lands",          "terrain": "Bog",      "advantageCardId": "advantage.misty_lands",  "verified": true,  "art": "tiles/misty_lands.svg" },
+  { "id": "territory.cove",         "name": "Cove",                 "terrain": "Coast",    "advantageCardId": "advantage.cove",         "verified": true,  "art": "tiles/cove.svg" },
+  { "id": "territory.salt_mine",    "name": "Salt Mine",            "terrain": "Coast",    "advantageCardId": "advantage.salt_mine",    "verified": true,  "art": "tiles/salt_mine.svg" },
+  { "id": "territory.iron_mine",    "name": "Iron Mine",            "terrain": "Mountain", "advantageCardId": "advantage.iron_mine",    "verified": true,  "art": "tiles/iron_mine.svg" },
+  { "id": "territory.stone_circle", "name": "Stone Circle",         "terrain": "Plains",   "advantageCardId": "advantage.stone_circle", "verified": true,  "startsWithSanctuary": true, "art": "tiles/stone_circle.svg" },
+  { "id": "territory.swamp",        "name": "Swamp",                "terrain": "Bog",      "advantageCardId": "advantage.swamp",        "verified": true,  "art": "tiles/swamp.svg" },
+  { "id": "territory.lost_vale",    "name": "Lost Vale",            "terrain": "Forest",   "advantageCardId": "advantage.lost_vale",    "verified": true,  "art": "tiles/lost_vale.svg" },
+  { "id": "territory.tir_na_nog",   "name": "Gates of Tír na nÓg",  "terrain": "Plains",   "advantageCardId": "advantage.tir_na_nog",   "verified": true,  "art": "tiles/tir_na_nog.svg" },
+  { "id": "territory.hills",        "name": "Hills",                "terrain": "Plains",   "advantageCardId": "advantage.hills",        "verified": true,  "art": "tiles/hills.svg" },
+  { "id": "territory.valley",       "name": "Valley",               "terrain": "Plains",   "advantageCardId": "advantage.valley",       "verified": false, "art": "tiles/valley.svg" },
+  { "id": "territory.wasteland",    "name": "Wasteland",            "terrain": "Bog",      "advantageCardId": "advantage.wasteland",    "verified": false, "art": "tiles/wasteland.svg" },
+  { "id": "territory.shore",        "name": "Shore",                "terrain": "Coast",    "advantageCardId": "advantage.shore",        "verified": false, "art": "tiles/shore.svg" }
 ]

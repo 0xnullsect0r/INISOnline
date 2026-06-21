@@ -1,32 +1,71 @@
-// PROVISIONAL DATA — base game cards.
-// Action card *names* are taken from public references; effect TEXT is re-worded
-// (not Matagot's verbatim copy) and exact COUNTS must be verified against the
-// rulebook in Phase 1 (see docs/rules.md). The full 30 Epic Tales and 16 Advantage
-// cards are stubbed here and completed during the rules transcription pass.
-// Flagged for user spot-check.
+// INIS base game — cards. "verified" flags rulebook-confirmed entries (docs/rules.md).
+// Effect TEXT is re-worded (never Matagot's verbatim copy). Action-card COUNTS are
+// provisional and sum to 23 (the base-game action total); Epic Tale set sums to 30.
 [
-  // ----- Action cards (deeds / season cards). Base set: 23 cards, 17 types. -----
-  { "id": "action.clash",        "type": "Action", "name": "Clash",        "count": 2, "text": "Trigger a clash in a territory where you are present.", "art": "cards/action/clash.png" },
-  { "id": "action.warlord",      "type": "Action", "name": "Warlord",      "count": 1, "text": "Start or strengthen a clash; place one exposed clan and choose who acts next.", "art": "cards/action/warlord.png" },
-  { "id": "action.conquest",     "type": "Action", "name": "Conquest",     "count": 1, "text": "Move clans into an adjacent territory you do not control.", "art": "cards/action/conquest.png" },
-  { "id": "action.migration",    "type": "Action", "name": "Migration",    "count": 2, "text": "Move any number of your clans between adjacent territories.", "art": "cards/action/migration.png" },
-  { "id": "action.exploration",  "type": "Action", "name": "Exploration",  "count": 1, "text": "Add a new territory tile to the island.", "art": "cards/action/exploration.png" },
-  { "id": "action.new_clans",    "type": "Action", "name": "New Clans",     "count": 2, "text": "Add new clans to a territory where you are present.", "art": "cards/action/new_clans.png" },
-  { "id": "action.citadel",      "type": "Action", "name": "Citadel",       "count": 2, "text": "Build a Citadel where you are present; gain that territory's Advantage card if unplayed.", "art": "cards/action/citadel.png" },
-  { "id": "action.sanctuary",    "type": "Action", "name": "Sanctuary",     "count": 2, "text": "Build a Sanctuary where you are present, then draw an Epic Tale.", "art": "cards/action/sanctuary.png" },
-  { "id": "action.bard",         "type": "Action", "name": "Bard",          "count": 2, "text": "Draw an Epic Tale, or gain a Deed after removing an opposing clan with a maneuver.", "art": "cards/action/bard.png" },
-  { "id": "action.druid",        "type": "Action", "name": "Druid",         "count": 1, "text": "Look at the discarded Action cards and add one to your hand.", "art": "cards/action/druid.png" },
-  { "id": "action.festival",     "type": "Action", "name": "Festival",      "count": 1, "text": "No clashes may be triggered in a chosen territory until your next turn.", "art": "cards/action/festival.png" },
-  { "id": "action.trade",        "type": "Action", "name": "Trade",         "count": 1, "text": "Exchange clans / share presence between two adjacent territories.", "art": "cards/action/trade.png" },
-  { "id": "action.new_alliance", "type": "Action", "name": "New Alliance",  "count": 1, "text": "Bring your clans together; reinforce a territory where you are present.", "art": "cards/action/new_alliance.png" },
-  { "id": "action.gift",         "type": "Action", "name": "Gift",          "count": 1, "text": "Give a card to another player to gain a Deed.", "art": "cards/action/gift.png" },
-  { "id": "action.sage",         "type": "Action", "name": "Sage",          "count": 1, "text": "Draw cards and refine your hand.", "art": "cards/action/sage.png" },
+  // ===== Action cards (23 total). Names mostly confirmed; counts pending check. =====
+  { "id": "action.battle",      "type": "Action", "name": "Battle",      "count": 2, "verified": false, "text": "Trigger a clash in a territory where you are present.", "art": "cards/action/battle.svg" },
+  { "id": "action.conquest",    "type": "Action", "name": "Conquest",    "count": 2, "verified": false, "text": "Move clans into an adjacent territory you do not control.", "art": "cards/action/conquest.svg" },
+  { "id": "action.migration",   "type": "Action", "name": "Migration",   "count": 2, "verified": false, "text": "Move any number of your clans between adjacent territories.", "art": "cards/action/migration.svg" },
+  { "id": "action.exploration", "type": "Action", "name": "Exploration", "count": 2, "verified": false, "text": "Add a new territory tile to the island, adjacent to two territories.", "art": "cards/action/exploration.svg" },
+  { "id": "action.new_clans",   "type": "Action", "name": "New Clans",   "count": 2, "verified": false, "text": "Add new clans to a territory where you are present.", "art": "cards/action/new_clans.svg" },
+  { "id": "action.citadel",     "type": "Action", "name": "Citadel",     "count": 2, "verified": false, "text": "Build a Citadel where you are present; gain that territory's Advantage card if unplayed.", "art": "cards/action/citadel.svg" },
+  { "id": "action.sanctuary",   "type": "Action", "name": "Sanctuary",   "count": 2, "verified": false, "text": "Build a Sanctuary where you are present, then draw an Epic Tale.", "art": "cards/action/sanctuary.svg" },
+  { "id": "action.bard",        "type": "Action", "name": "Bard",        "count": 2, "verified": false, "text": "Draw an Epic Tale; or gain a Deed after a maneuver removes an opposing clan.", "art": "cards/action/bard.svg" },
+  { "id": "action.warlord",     "type": "Action", "name": "Warlord",     "count": 2, "verified": false, "text": "Start or strengthen a clash; place one exposed clan and choose who acts next.", "art": "cards/action/warlord.svg" },
+  { "id": "action.druid",       "type": "Action", "name": "Druid",       "count": 1, "verified": false, "text": "Look at the discarded Action cards and add one to your hand.", "art": "cards/action/druid.svg" },
+  { "id": "action.festival",    "type": "Action", "name": "Festival",    "count": 1, "verified": false, "text": "No clashes may be triggered in a chosen territory until your next turn.", "art": "cards/action/festival.svg" },
+  { "id": "action.trade",       "type": "Action", "name": "Trade",       "count": 1, "verified": false, "text": "Share presence / exchange clans between two adjacent territories.", "art": "cards/action/trade.svg" },
+  { "id": "action.gathering",   "type": "Action", "name": "Gathering",   "count": 1, "verified": false, "text": "Gather your clans together in one territory where you are present.", "art": "cards/action/gathering.svg" },
+  { "id": "action.messenger",   "type": "Action", "name": "Messenger",   "count": 1, "verified": false, "text": "Draw and refine cards / interact across territories.", "art": "cards/action/messenger.svg" },
 
-  // ----- Epic Tale cards (base set: 30). STUB — only a couple modelled so far. -----
-  { "id": "epic.king_and_land",  "type": "EpicTale", "name": "The King and the Land", "count": 1, "text": "Bound to the Brenn; resolves with leadership effects.", "art": "cards/epic/king_and_land.png" },
-  { "id": "epic.geis",           "type": "EpicTale", "name": "Geis",                  "count": 1, "text": "Impose a sacred prohibition on a rival.", "art": "cards/epic/geis.png" },
-  { "id": "epic.master_craftsman","type": "EpicTale","name": "Master Craftsman",      "count": 1, "text": "Build or upgrade with reduced cost.", "art": "cards/epic/master_craftsman.png" },
+  // ===== Advantage cards (16, one per territory). =====
+  { "id": "advantage.meadows",      "type": "Advantage", "name": "Meadows",             "count": 1, "territoryId": "territory.meadows",      "verified": true,  "text": "Chieftain advantage of the Meadows.", "art": "cards/advantage/meadows.svg" },
+  { "id": "advantage.forest",       "type": "Advantage", "name": "Forest",              "count": 1, "territoryId": "territory.forest",       "verified": true,  "text": "Chieftain advantage of the Forest.", "art": "cards/advantage/forest.svg" },
+  { "id": "advantage.mountains",    "type": "Advantage", "name": "Mountains",           "count": 1, "territoryId": "territory.mountains",    "verified": true,  "text": "Chieftain advantage of the Mountains.", "art": "cards/advantage/mountains.svg" },
+  { "id": "advantage.highlands",    "type": "Advantage", "name": "Highlands",           "count": 1, "territoryId": "territory.highlands",    "verified": true,  "text": "Chieftain advantage of the Highlands.", "art": "cards/advantage/highlands.svg" },
+  { "id": "advantage.misty_lands",  "type": "Advantage", "name": "Misty Lands",         "count": 1, "territoryId": "territory.misty_lands",  "verified": true,  "text": "Chieftain advantage of the Misty Lands.", "art": "cards/advantage/misty_lands.svg" },
+  { "id": "advantage.cove",         "type": "Advantage", "name": "Cove",                "count": 1, "territoryId": "territory.cove",         "verified": true,  "text": "Chieftain advantage of the Cove.", "art": "cards/advantage/cove.svg" },
+  { "id": "advantage.salt_mine",    "type": "Advantage", "name": "Salt Mine",           "count": 1, "territoryId": "territory.salt_mine",    "verified": true,  "text": "Chieftain advantage of the Salt Mine.", "art": "cards/advantage/salt_mine.svg" },
+  { "id": "advantage.iron_mine",    "type": "Advantage", "name": "Iron Mine",           "count": 1, "territoryId": "territory.iron_mine",    "verified": true,  "text": "Force an opponent to discard an Action card to oppose you.", "art": "cards/advantage/iron_mine.svg" },
+  { "id": "advantage.stone_circle", "type": "Advantage", "name": "Stone Circle",        "count": 1, "territoryId": "territory.stone_circle", "verified": true,  "text": "Keep an Epic Tale instead of discarding it.", "art": "cards/advantage/stone_circle.svg" },
+  { "id": "advantage.swamp",        "type": "Advantage", "name": "Swamp",               "count": 1, "territoryId": "territory.swamp",        "verified": true,  "text": "Chieftain advantage of the Swamp.", "art": "cards/advantage/swamp.svg" },
+  { "id": "advantage.lost_vale",    "type": "Advantage", "name": "Lost Vale",           "count": 1, "territoryId": "territory.lost_vale",    "verified": true,  "text": "Chieftain advantage of the Lost Vale.", "art": "cards/advantage/lost_vale.svg" },
+  { "id": "advantage.tir_na_nog",   "type": "Advantage", "name": "Gates of Tír na nÓg", "count": 1, "territoryId": "territory.tir_na_nog",   "verified": true,  "text": "Chieftain advantage of the Gates of Tír na nÓg.", "art": "cards/advantage/tir_na_nog.svg" },
+  { "id": "advantage.hills",        "type": "Advantage", "name": "Hills",               "count": 1, "territoryId": "territory.hills",        "verified": true,  "text": "Ignore an attack (do not remove a clan); then draw an Epic Tale or discard an Action card.", "art": "cards/advantage/hills.svg" },
+  { "id": "advantage.valley",       "type": "Advantage", "name": "Valley",              "count": 1, "territoryId": "territory.valley",       "verified": false, "text": "Chieftain advantage of the Valley.", "art": "cards/advantage/valley.svg" },
+  { "id": "advantage.wasteland",    "type": "Advantage", "name": "Wasteland",           "count": 1, "territoryId": "territory.wasteland",    "verified": false, "text": "Chieftain advantage of the Wasteland.", "art": "cards/advantage/wasteland.svg" },
+  { "id": "advantage.shore",        "type": "Advantage", "name": "Shore",               "count": 1, "territoryId": "territory.shore",        "verified": false, "text": "Chieftain advantage of the Shore.", "art": "cards/advantage/shore.svg" },
 
-  // ----- Advantage cards (base set: 16, one per territory). STUB — one modelled. -----
-  { "id": "advantage.plains_of_battle", "type": "Advantage", "name": "Plains of Battle", "count": 1, "territoryId": "territory.plains_of_battle", "text": "Chieftain advantage: strengthen your clans during clashes here.", "art": "cards/advantage/plains_of_battle.png" }
+  // ===== Epic Tale cards (30). First 8 names verified; remainder provisional. =====
+  { "id": "epic.lug_samildanach", "type": "EpicTale", "name": "Lug Samildanach",  "count": 1, "verified": true,  "text": "Keep a card just nullified by Geis.", "art": "cards/epic/lug_samildanach.svg" },
+  { "id": "epic.deirdres_beauty", "type": "EpicTale", "name": "Deirdre's Beauty", "count": 1, "verified": true,  "text": "Add one Epic Tale to your hand and discard the others; then remove one of your clans from any territory.", "art": "cards/epic/deirdres_beauty.svg" },
+  { "id": "epic.the_morrigan",    "type": "EpicTale", "name": "The Morrigan",     "count": 1, "verified": true,  "text": "A war omen; influence a clash.", "art": "cards/epic/the_morrigan.svg" },
+  { "id": "epic.the_dagda",       "type": "EpicTale", "name": "The Dagda",        "count": 1, "verified": true,  "text": "The good god's bounty.", "art": "cards/epic/the_dagda.svg" },
+  { "id": "epic.the_dagdas_club", "type": "EpicTale", "name": "The Dagda's Club", "count": 1, "verified": true,  "text": "Strike down clans with the great club.", "art": "cards/epic/the_dagdas_club.svg" },
+  { "id": "epic.master_craftsman","type": "EpicTale", "name": "Master Craftsman", "count": 1, "verified": true,  "text": "Discard one card if able, then draw an Epic Tale.", "art": "cards/epic/master_craftsman.svg" },
+  { "id": "epic.stone_circle",    "type": "EpicTale", "name": "Stone Circle",     "count": 1, "verified": true,  "text": "Retrieve an Epic Tale instead of discarding it.", "art": "cards/epic/stone_circle.svg" },
+  { "id": "epic.geis",            "type": "EpicTale", "name": "Geis",             "count": 1, "verified": true,  "text": "Impose a sacred prohibition that nullifies a rival's card.", "art": "cards/epic/geis.svg" },
+
+  { "id": "epic.cuchulainn",      "type": "EpicTale", "name": "Cúchulainn",            "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/cuchulainn.svg" },
+  { "id": "epic.gae_bolg",        "type": "EpicTale", "name": "The Gáe Bolg",          "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/gae_bolg.svg" },
+  { "id": "epic.finn_mac_cumhaill","type": "EpicTale","name": "Finn mac Cumhaill",     "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/finn_mac_cumhaill.svg" },
+  { "id": "epic.salmon_knowledge","type": "EpicTale", "name": "The Salmon of Knowledge","count": 1,"verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/salmon_knowledge.svg" },
+  { "id": "epic.children_of_lir", "type": "EpicTale", "name": "The Children of Lir",   "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/children_of_lir.svg" },
+  { "id": "epic.balors_eye",      "type": "EpicTale", "name": "Balor's Eye",           "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/balors_eye.svg" },
+  { "id": "epic.claiomh_solais",  "type": "EpicTale", "name": "Claíomh Solais",        "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/claiomh_solais.svg" },
+  { "id": "epic.lughs_spear",     "type": "EpicTale", "name": "Lugh's Spear",          "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/lughs_spear.svg" },
+  { "id": "epic.cauldron_dagda",  "type": "EpicTale", "name": "The Cauldron of the Dagda","count": 1,"verified": false,"text": "Epic Tale (effect to transcribe).", "art": "cards/epic/cauldron_dagda.svg" },
+  { "id": "epic.brigid",          "type": "EpicTale", "name": "Brigid",                "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/brigid.svg" },
+  { "id": "epic.the_banshee",     "type": "EpicTale", "name": "The Banshee",           "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/the_banshee.svg" },
+  { "id": "epic.the_sidhe",       "type": "EpicTale", "name": "The Sidhe",             "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/the_sidhe.svg" },
+  { "id": "epic.aengus",          "type": "EpicTale", "name": "Aengus",                "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/aengus.svg" },
+  { "id": "epic.manannan",        "type": "EpicTale", "name": "Manannán mac Lir",      "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/manannan.svg" },
+  { "id": "epic.hound_of_ulster", "type": "EpicTale", "name": "The Hound of Ulster",   "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/hound_of_ulster.svg" },
+  { "id": "epic.scathach",        "type": "EpicTale", "name": "Scáthach",              "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/scathach.svg" },
+  { "id": "epic.tuatha_de_danann","type": "EpicTale", "name": "Tuatha Dé Danann",      "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/tuatha_de_danann.svg" },
+  { "id": "epic.the_fianna",      "type": "EpicTale", "name": "The Fianna",            "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/the_fianna.svg" },
+  { "id": "epic.ogma",            "type": "EpicTale", "name": "Ogma",                  "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/ogma.svg" },
+  { "id": "epic.danu",            "type": "EpicTale", "name": "Danu",                  "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/danu.svg" },
+  { "id": "epic.the_tain",        "type": "EpicTale", "name": "The Táin",              "count": 1, "verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/the_tain.svg" },
+  { "id": "epic.nuada",           "type": "EpicTale", "name": "Nuada of the Silver Arm","count": 1,"verified": false, "text": "Epic Tale (effect to transcribe).", "art": "cards/epic/nuada.svg" }
 ]

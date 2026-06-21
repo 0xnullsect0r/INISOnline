@@ -15,7 +15,7 @@ Early development. See the implementation plan and per-area docs in [`docs/`](do
 | Area | Phase | State |
 |------|-------|-------|
 | Repo scaffolding | 0 | in progress |
-| Game assets (SVG) | 1 | data started |
+| Game assets (SVG) | 1 | art pipeline + full piece/card/tile set done; card text data partial |
 | Rules engine (`Inis.Core`) | 2 | scaffolding |
 | Godot client (offline/hotseat) | 3 | scaffolding |
 | AI opponents | 4 | not started |

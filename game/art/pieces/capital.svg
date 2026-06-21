@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="150" viewBox="0 0 160 150">
+  <!-- Capital: a grand citadel with a gold pennant. -->
+  <ellipse cx="80" cy="142" rx="54" ry="8" fill="#1c1712" opacity="0.25"/>
+  <g fill="#c9b78f" stroke="#1c1712" stroke-width="4" stroke-linejoin="round">
+    <rect x="30" y="58" width="100" height="80"/>
+    <path d="M30 58 v-14 h12 v8 h12 v-8 h12 v8 h12 v-8 h12 v8 h12 v-8 h12 v14 Z"/>
+    <rect x="66" y="20" width="28" height="38"/>
+    <path d="M66 20 v-8 h7 v4 h7 v-4 h7 v8 Z"/>
+  </g>
+  <path d="M80 20 v-16 l20 6 l-20 6" fill="#c8a24a" stroke="#1c1712" stroke-width="2"/>
+  <rect x="70" y="100" width="20" height="38" fill="#5a4a32" stroke="#1c1712" stroke-width="3"/>
+</svg>
