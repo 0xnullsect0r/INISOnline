@@ -3,6 +3,28 @@
 Visual target: the clean, friendly, animated feel of **Catan Universe** ("Catan
 Online"), themed with Celtic motifs.
 
+## Rendering: 2.5D (like digital RISK)
+The play area is a **3D scene viewed from a tilted camera** — a flat board seen at
+an angle — with **3D pieces standing on it**, not a flat top-down sprite map.
+
+- **Board / tiles:** the hex territory tiles lie flat as textured quads/meshes on a
+  ground plane, using the SVG-derived tile textures (`game/art/tiles/`). The sea
+  backdrop (`board/board_bg.svg`) sits beneath. Camera: perspective with a ~50–60°
+  tilt; **orbit/pan/zoom** (drag, pinch on touch).
+- **Pieces are real 3D:** clan figures, sanctuaries, citadels and the capital are
+  **low-poly 3D meshes** (per-player vertex colors) that cast soft shadows and
+  animate (drop-in, march on Migration, fall on a clash hit). The 2D piece SVGs
+  (`game/art/pieces/`) are reused as **UI icons** (player banners, legends, tooltips)
+  and as a low-end **billboard fallback**.
+- **Cards, hand, HUD, menus, settings:** crisp **2D overlays** (`CanvasLayer`) on
+  top of the 3D board — cards never go 3D; they fan, hover-zoom and drag in 2D.
+- **Why:** matches the requested RISK-style look, keeps text/cards razor sharp,
+  reads well on phones, and lets pieces have satisfying tactile motion. Performance
+  is cheap (flat board + low-poly props) so it runs on mobile.
+
+The art already produced supports this directly: SVG tile/card textures import into
+Godot natively; Phase 3 adds the low-poly piece meshes + the tilted 3D board scene.
+
 ## Design system (`game/ui/theme/`)
 - **Palette:** warm parchment + slate, gold/bronze accents; knotwork borders.
 - **Godot `Theme` resource** centralizes fonts, colors, button/panel/slider styles
