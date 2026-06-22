@@ -2,6 +2,7 @@ using System.Text;
 using InisServer.Auth;
 using InisServer.Data;
 using InisServer.Endpoints;
+using InisServer.Game;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -22,6 +23,9 @@ var connString = builder.Configuration.GetConnectionString("Postgres")
     ?? builder.Configuration["POSTGRES_CONNECTION"]
     ?? "Host=postgres;Port=5432;Database=inis;Username=inis;Password=inis";
 builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connString));
+
+// ---- Authoritative game sessions ----
+builder.Services.AddSingleton<GameSessionManager>();
 
 // ---- Auth ----
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -57,13 +61,11 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 
 var app = builder.Build();
 
-// Ensure the schema exists at startup (single-instance deployment).
-// TODO Phase 5: replace EnsureCreated with EF migrations (`dotnet ef migrations add Initial`)
-// and call db.Database.Migrate() instead, for versioned schema evolution.
+// Apply EF migrations at startup (single-instance deployment) for versioned schema evolution.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 app.UseCors();
@@ -79,6 +81,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.MapAuthEndpoints();
 app.MapFriendsEndpoints();
+app.MapLobbyEndpoints();
 app.MapGameEndpoints();
 
 app.Run();

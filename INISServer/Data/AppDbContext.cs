@@ -7,6 +7,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Friendship> Friendships => Set<Friendship>();
+    public DbSet<Game> Games => Set<Game>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -20,6 +21,18 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             e.HasIndex(t => t.TokenHash);
             e.HasOne(t => t.User).WithMany(u => u.RefreshTokens).HasForeignKey(t => t.UserId);
+        });
+
+        b.Entity<Game>(e =>
+        {
+            e.Property(g => g.Status).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(g => g.Status);
+            // jsonb on PostgreSQL; falls back to the provider default (e.g. text on Sqlite in tests).
+            if (Database.IsNpgsql())
+            {
+                e.Property(g => g.StateJson).HasColumnType("jsonb");
+                e.Property(g => g.SeatsJson).HasColumnType("jsonb");
+            }
         });
 
         b.Entity<Friendship>(e =>
