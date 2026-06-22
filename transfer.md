@@ -54,8 +54,8 @@ text (never the publisher's verbatim wording). Keep it that way.
 | 1 | Assets + verified data | **DONE** (per-row `verified` flags; art via `tools/gen-art.mjs`) |
 | 2 | Core rules engine | **DONE**, CI green (engine tests) |
 | 4 | AI opponents + soak tests | **DONE**, CI green (run #9) |
+| 5 | Server game sessions over WebSocket | **DONE**, CI green — lobbies, authoritative WS sessions, AI seats, redacted sync, EF migrations + game persistence, integration tests |
 | 3 | Godot client (2.5D, offline/hotseat) | **NOT STARTED** — needs Godot editor |
-| 5 | Server game sessions over WebSocket | **NOT STARTED** — .NET, CI-verifiable |
 | 6 | Online multiplayer in client | not started |
 | 7 | LAN multiplayer | not started |
 | 8 | Settings, audio, polish, Debug screen | not started |
@@ -64,8 +64,8 @@ text (never the publisher's verbatim wording). Keep it that way.
 | 11 | 6–8 player extended mode | later |
 | 12 | Release CI/CD (installers) | later |
 
-**Recommended next order:** **Phase 5** (CI-verifiable .NET) → **Phase 3** (Godot)
-→ 6 → 7 → 8 → 9 → 10 → 11 → 12. Phase 3 needs a session that can run the Godot
+**Recommended next order:** **Phase 3** (Godot client) → 6 → 7 → 8 → 9 → 10 → 11
+→ 12. Phase 3 needs a session that can run the Godot
 editor; Phase 5/AI/engine work only needs the .NET SDK + CI.
 
 ## 4. Repo layout & key files
@@ -139,11 +139,14 @@ CI (build + test + docker image) runs on every push; gate work on it being green
 
 ## 8. Known follow-ups / tech debt
 
-- **Server-reload determinism (do in Phase 5):** `GameEngine._rng` is re-seeded
-  from `state.Seed` on construction and `_draftDeck` is an instance field — neither
-  is persisted. Persisting/reconstructing a game mid-draft or mid-game will desync
-  RNG. Add an RNG cursor/counter (and stash the draft leftover deck) into
-  `GameState` so a reload reproduces subsequent draws exactly.
+- **Server-reload determinism — FIXED in Phase 5.** `DeterministicRng` now tracks a
+  draw `Cursor`; `GameState.RngCursor` persists it and the engine fast-forwards the
+  seeded stream on construction. The draft leftover deck moved into `DraftState`.
+  Model collections are `init`-settable so `GameState` round-trips through
+  `Inis.Core/Net/InisJson`. Covered by `ReloadDeterminismTests`.
+- **Redaction over-hides advantages (minor).** `PlayerView.Redact` masks an
+  opponent's whole hand including face-up Advantage cards (engine stores them in
+  `Hand`). Anti-cheat is safe (never leaks); reveal public advantages later.
 - `Effects/EffectRegistry` and `Exploration` use `GameData.Default` rather than the
   engine's injected `Data` — fine for the default catalogue, fix when supporting
   alternate content sets (expansion modules).
@@ -151,21 +154,41 @@ CI (build + test + docker image) runs on every push; gate work on it being green
   modeled as legal no-ops; see `docs/rules.md` "documented simplifications". Flesh
   out as needed (notably for Phase 10).
 
-## 9. Phase 5 starter notes (next undone, CI-verifiable)
+## 9. Phase 5 — DONE (what was built)
 
-Goal: turn `INISServer/Endpoints/GameEndpoints.cs` (currently a WS echo stub) into
-real authoritative game sessions, per `docs/protocol.md`:
-- A `GameSessionManager` (singleton) holding `GameEngine` per game id; thread-safe.
-- Lobbies: create/join (invite code + friend invite), choose 2–5 seats + AI fill,
-  ready-up, start → builds the engine with `SeatConfig`s (+ `IsAi` seats).
-- WS `/ws/game/{id}` (JWT via `?access_token`, already wired in `Program.cs`):
-  parse intents → map to `Move` → `engine.Apply` → broadcast **per-player redacted**
-  `StateSync`/`Diff` + `Event` + `TurnPrompt`; handle reconnection (replay
-  StateSync) and spectators.
-- For AI seats, after each human move drive `HeuristicAi`/`AiRunner` until the next
-  human decision.
-- `DebugCommand` → `DebugCommandApi.Apply` → broadcast synced diff (works online).
-- Replace `EnsureCreated()` with EF migrations; persist active games (jsonb) for
-  reload (apply the RNG-cursor fix above).
-- Keep CI green; add integration tests (auth + friends + a scripted WS bot playing
-  a full game).
+Server is authoritative per `docs/protocol.md`. Key types:
+- **`Inis.Core/Net`** (shared with the future client): `InisJson` (canonical
+  (de)serialization), `Protocol`/`Envelope`/`ServerMessages`/`MoveCodec` (wire
+  contract — the canonical intent is a `Move` echoed under type `"Intent"`; named
+  verbs + `DebugCommand` also map), and **`PlayerView.Redact`** (per-player view:
+  reveals the recipient's own hidden info, masks everyone else's hands/draft hands
+  and the secret draw zones to counts using the `"?"` sentinel; clears IntentLog).
+- **`INISServer/Game`**: `GameSessionManager` (singleton — in-memory lobbies +
+  live `GameSession`s; rebuilds a missing session from the DB, resuming the engine
+  deterministically). `GameSession` is the single writer (a `SemaphoreSlim` gate):
+  maps intents→`Move`, applies authoritatively, auto-plays AI seats via
+  `HeuristicAi` to the next human decision, persists, then broadcasts per-player
+  redacted `StateSync` + `Event`s + a `TurnPrompt`. Reconnection replays a full
+  StateSync; non-seated users connect as spectators; `DebugCommand` goes through
+  `DebugCommandApi` and is broadcast (works online, audit-logged).
+- **Lobbies** (`Endpoints/LobbyEndpoints`): `POST /lobbies` (capacity 2–5),
+  `GET /lobbies`, `GET/POST /lobbies/{id}`, `/join` (open seat or `{code}`),
+  `/leave`, `/ready`, `/seats/{i}/ai`, `/invite` (friends only), `/start` →
+  `{ gameId }`; `GET /games/{id}` status.
+- **Persistence**: `Game` entity (jsonb `StateJson` + `SeatsJson` on Postgres);
+  `EnsureCreated()` replaced with EF migrations (`Data/Migrations/InitialCreate`)
+  + `db.Database.Migrate()`; `DesignTimeDbContextFactory` keeps tooling off a live
+  DB. Tests host the app over in-memory Sqlite (model `EnsureCreated`).
+- **Auth fix**: disabled JWT inbound claim remapping (`MapInboundClaims=false`,
+  `NameClaimType="unique_name"`) so endpoints can read `FindFirstValue("sub")`.
+
+Integration tests: `INISServer.Tests` (WebApplicationFactory) — auth, friends, and
+a scripted WebSocket bot playing a full AI-filled game to `GameOver`. Wired into CI
+(`dotnet test INISServer.Tests`).
+
+### Notes for Phase 6 (client online MP) — reuse, don't reinvent
+- Reuse `Inis.Core/Net` on the client: build intents with the same `Envelope`,
+  send the legal `Move` from a `TurnPrompt` back under type `"Intent"`, deserialize
+  `StateSync` as a `GameState` (masked cards are `"?"`).
+- WS connect: `wss://.../ws/game/{id}?access_token=<JWT>`. The server sends `Hello`
+  then a full redacted `StateSync` (+ `TurnPrompt` if it's your turn) on connect.

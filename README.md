@@ -14,12 +14,12 @@ Early development. See the implementation plan and per-area docs in [`docs/`](do
 
 | Area | Phase | State |
 |------|-------|-------|
-| Repo scaffolding | 0 | in progress |
-| Game assets (SVG) | 1 | art pipeline + full piece/card/tile set done; card text data partial |
-| Rules engine (`Inis.Core`) | 2 | scaffolding |
-| Godot client (offline/hotseat) | 3 | scaffolding |
-| AI opponents | 4 | heuristic AI + AI-vs-AI soak tests (CI green) |
-| `INISServer` (ASP.NET, .NET 10) | 5 | scaffolding |
+| Repo scaffolding | 0 | **done** (CI green) |
+| Game assets (SVG) | 1 | **done** — verified data + art pipeline |
+| Rules engine (`Inis.Core`) | 2 | **done** (CI green) |
+| Godot client (offline/hotseat) | 3 | not started |
+| AI opponents | 4 | **done** — heuristic AI + AI-vs-AI soak tests (CI green) |
+| `INISServer` (ASP.NET, .NET 10) | 5 | **done** — lobbies, authoritative WebSocket sessions, AI seats, redacted sync, EF migrations + persistence (CI green) |
 | Online multiplayer (client) | 6 | not started |
 | LAN multiplayer | 7 | not started |
 | Settings / audio / Debug screen | 8 | not started |
@@ -38,7 +38,7 @@ INISOnline/
   INISServer/        # ASP.NET Core .NET 10 server + docker compose (references Inis.Core)
   assets/            # Source SVG art + export pipeline -> game/ import dirs
   docs/              # Rules transcription, protocol spec, design & build docs
-  Inis.sln           # Solution: Inis.Core, Inis.Core.Tests, INISServer
+  Inis.slnx          # Solution: Inis.Core(+Tests), INISServer(+Tests)
 ```
 
 The engine (`Inis.Core`) is the single source of game rules and is shared by both
@@ -51,8 +51,9 @@ Requires the **.NET 10 SDK** and **Godot 4.4+ (.NET/Mono build)**.
 
 ```bash
 # Engine + server + tests
-dotnet build Inis.sln
-dotnet test Inis.Core.Tests
+dotnet build Inis.slnx
+dotnet test Inis.Core.Tests      # rules engine
+dotnet test INISServer.Tests     # auth, friends + WebSocket game session
 
 # Server locally
 dotnet run --project INISServer

@@ -31,9 +31,20 @@
   asserting no exceptions, an always-legal pending decision until game-over, and
   clan conservation every step, plus same-seed determinism and reachable winners.
   CI green (run #9).
-- **NEXT: Phase 3 (Godot client UI shell + offline/hotseat) and/or Phase 5
-  (server game sessions wiring the engine over WebSocket).** Phase 3 needs the
-  Godot editor to validate; Phase 5 is .NET and CI-verifiable.
+- **Phase 5 (INISServer game sessions): DONE** — authoritative WebSocket sessions
+  per `docs/protocol.md`. `GameSessionManager` (singleton) holds a `GameEngine` per
+  game and rebuilds missing sessions from the database (deterministic resume via the
+  persisted RNG cursor). `GameSession` is the single writer: maps intents→`Move`,
+  applies, auto-plays AI seats via `HeuristicAi`, persists, and broadcasts per-player
+  **redacted** `StateSync`/`Event`/`TurnPrompt`; reconnection replays StateSync;
+  spectators and `DebugCommand` (server-authoritative, synced) supported. Lobbies
+  (create/join by open seat or invite code, friend invite, AI fill, ready-up, start),
+  shared `Inis.Core/Net` wire layer + redaction, EF migrations replacing
+  `EnsureCreated()` with persisted games (jsonb). Server-reload determinism debt
+  fixed. Integration tests (auth + friends + a scripted WebSocket bot playing a full
+  game) wired into CI. CI green.
+- **NEXT: Phase 3 (Godot client UI shell + offline/hotseat).** Needs the Godot
+  editor to validate; CI does not build the Godot project.
 
 ## Environment notes
 - `.NET 10 SDK` and `Godot` are NOT preinstalled; install the SDK in a fresh
