@@ -26,6 +26,9 @@ jobs:
       - name: Test engine
         run: dotnet test Inis.Core.Tests --no-build -c Release --verbosity normal
 
+      - name: Test server (auth, friends, WebSocket game session)
+        run: dotnet test INISServer.Tests --no-build -c Release --verbosity normal
+
   docker:
     name: Server image builds
     runs-on: ubuntu-latest

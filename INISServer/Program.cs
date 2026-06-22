@@ -31,6 +31,9 @@ builder.Services.AddSingleton<GameSessionManager>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
+        // Keep JWT claim names verbatim ("sub", "unique_name") rather than remapping them to
+        // the long XML claim-type URIs, so endpoints can read FindFirstValue("sub") directly.
+        o.MapInboundClaims = false;
         o.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -40,6 +43,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwt.Issuer,
             ValidAudience = jwt.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey)),
+            NameClaimType = "unique_name",
         };
         // Allow the access token on the game WebSocket via ?access_token=...
         o.Events = new JwtBearerEvents
@@ -61,11 +65,16 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 
 var app = builder.Build();
 
-// Apply EF migrations at startup (single-instance deployment) for versioned schema evolution.
+// Initialize the schema at startup (single-instance deployment). Production applies versioned
+// EF migrations; the integration-test host uses a provider (Sqlite) for which it just creates
+// the schema from the model.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    if (db.Database.IsRelational() && db.Database.ProviderName!.Contains("Npgsql"))
+        db.Database.Migrate();
+    else
+        db.Database.EnsureCreated();
 }
 
 app.UseCors();
@@ -85,3 +94,6 @@ app.MapLobbyEndpoints();
 app.MapGameEndpoints();
 
 app.Run();
+
+/// <summary>Exposed so the integration-test <c>WebApplicationFactory</c> can host the app.</summary>
+public partial class Program;
