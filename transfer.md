@@ -55,7 +55,7 @@ text (never the publisher's verbatim wording). Keep it that way.
 | 2 | Core rules engine | **DONE**, CI green (engine tests) |
 | 4 | AI opponents + soak tests | **DONE**, CI green (run #9) |
 | 5 | Server game sessions over WebSocket | **DONE**, CI green — lobbies, authoritative WS sessions, AI seats, redacted sync, EF migrations + game persistence, integration tests |
-| 3 | Godot client (2.5D, offline/hotseat) | **NOT STARTED** — needs Godot editor |
+| 3 | Godot client (2.5D, offline/hotseat) | **IN PROGRESS** — design system, menus, mode/setup + engine-driven HUD done (offline/hotseat playable, headless-smoke-validated). TODO: 2.5D 3D board view, richer card-target UI |
 | 6 | Online multiplayer in client | not started |
 | 7 | LAN multiplayer | not started |
 | 8 | Settings, audio, polish, Debug screen | not started |
@@ -97,13 +97,17 @@ server both drive a game ONLY through these.
 
 ## 5. Environment notes (important)
 
-- **This session could NOT compile**: the original container booted before egress
-  was opened, so `builds.dotnet.microsoft.com` (the .NET SDK installer host) is
-  blocked and `dotnet`/`godot` are not preinstalled. Validation here relied on CI.
-- **Network access is fixed at container boot.** A **fresh session** (egress now
-  set to Full/Custom) can install the .NET 10 SDK and reach the rules sites.
+- **Toolchain install (when egress is open):** .NET 10 SDK via `dotnet-install.sh`
+  to `~/.dotnet`; also install the **.NET 8 runtime** (`--channel 8.0 --runtime
+  dotnet`) so the net8 engine tests' host runs locally. For `dotnet ef`, install
+  the tool and set `DOTNET_ROOT=$HOME/.dotnet`. **Godot 4.4 (.NET)**: download the
+  `mono_linux_x86_64` build from the GitHub release; validate the client headless
+  with `godot --headless res://scenes/SmokeTest.tscn` (CI does not build Godot) —
+  rebuild the C# (`dotnet build game/INISOnline.csproj`) after editing client code
+  before re-running, and `--headless --import` after adding scenes/assets.
 - **Git/GitHub work** via a separate proxy regardless. Push only to the feature
-  branch; the proxy restricts pushes to the current branch.
+  branch (`claude/confident-lovelace-fclngx`); the proxy restricts pushes to the
+  current branch.
 
 ## 6. Conventions (follow these)
 
