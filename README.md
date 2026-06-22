@@ -18,7 +18,7 @@ Early development. See the implementation plan and per-area docs in [`docs/`](do
 | Game assets (SVG) | 1 | art pipeline + full piece/card/tile set done; card text data partial |
 | Rules engine (`Inis.Core`) | 2 | scaffolding |
 | Godot client (offline/hotseat) | 3 | scaffolding |
-| AI opponents | 4 | not started |
+| AI opponents | 4 | heuristic AI + AI-vs-AI soak tests (CI pending) |
 | `INISServer` (ASP.NET, .NET 10) | 5 | scaffolding |
 | Online multiplayer (client) | 6 | not started |
 | LAN multiplayer | 7 | not started |
