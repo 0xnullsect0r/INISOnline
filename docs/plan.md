@@ -7,18 +7,25 @@
 
 ## Progress
 - **Phase 0 (scaffolding): DONE** — solution (`Inis.slnx`), `Inis.Core` engine
-  foundation (model, data-driven catalogue + loader, deterministic RNG, setup,
-  victory evaluator), `Inis.Core.Tests`, `INISServer` (.NET 10: EF Core/Postgres,
-  JWT access+refresh auth, friends, Scalar, game WebSocket stub, Dockerfile +
+  foundation, `Inis.Core.Tests`, `INISServer` (.NET 10: EF Core/Postgres, JWT
+  access+refresh auth, friends, Scalar, game WebSocket stub, Dockerfile +
   docker-compose on :80), Godot 4.4 .NET client skeleton, CI workflow, docs.
-- **Phase 1 (assets + data): MOSTLY DONE** — base-game composition correct
-  (16 territories, 23 action / 14 types, 16 advantages, 30 epic tales). Each data
-  row has a `Verified` flag. **Verified so far:** 13/16 territory names, 8/30 epic
-  tales, 3 advantage effects (Hills, Iron Mine, Stone Circle). The rest are
-  `verified:false` placeholders pending a rulebook spot-check (build env blocked the
-  rules sites). `tools/gen-art.mjs` generates all card/tile SVGs from the data;
-  bespoke SVGs for pieces/tokens/back/board/UI exist under `game/art/` (76 assets).
-- **NEXT: finish Phase 1 verification (now that egress is opened) + Phase 2 engine.**
+  **Compiles** under .NET 8 (engine/tests) + .NET 10 (server) — fixed the missing
+  `Microsoft.AspNetCore.OpenApi` package.
+- **Phase 1 (assets + data): DONE** — content verified against the official
+  Matagot 2016 rulebook, the Seasons of Inis rulebook, the Esoteric Order of
+  Gamers v2.2 reference, the Inis errata/FAQ, UltraBoardGames and BGG. 16
+  territories (all names verified; Plains/Moor replace the old provisional tiles),
+  23 action cards (17 base + 6 Seasons of Inis), 16 advantages, 30 epic tales —
+  all effect text paraphrased. Per-row `verified` flags + status in `docs/rules.md`.
+  Art regenerated via `tools/gen-art.mjs` (85 SVGs; orphans pruned).
+- **Phase 2 (core rules engine): DONE** — deterministic `GameEngine` (setup,
+  six-step Assembly, pick-and-pass draft incl. 2-player, Season loop, clash
+  resolution, pretender-gated victory + Brenn tie-break), one effect handler per
+  card, legal-move API, debug command API, seeded replay. 56 xUnit tests green.
+  Documented simplifications: Triskel reactive-window timing and a few
+  Advantage/Epic effects are not yet fully modeled (see `docs/rules.md`).
+- **NEXT: Phase 3 (Godot client UI shell + offline/hotseat) drives the engine.**
 
 ## Environment notes
 - `.NET 10 SDK` and `Godot` are NOT preinstalled; install the SDK in a fresh
