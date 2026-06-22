@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Inis.Core.Model;
 
 /// <summary>
@@ -12,19 +14,26 @@ public sealed class GameState
     /// <summary>Seed for the deterministic RNG — enables reproducible games / replays.</summary>
     public required int Seed { get; init; }
 
+    /// <summary>
+    /// Number of RNG draws consumed so far. Persisted alongside the rest of the state so a
+    /// reconstructed engine resumes the deterministic sequence exactly where it left off,
+    /// rather than re-drawing from the seed. See <c>DeterministicRng</c>.
+    /// </summary>
+    public int RngCursor { get; set; }
+
     /// <summary>Seats in turn order.</summary>
-    public List<PlayerState> Players { get; } = new();
+    public List<PlayerState> Players { get; init; } = new();
 
     /// <summary>Territories currently on the island, keyed by instance id.</summary>
-    public Dictionary<string, TerritoryState> Territories { get; } = new();
+    public Dictionary<string, TerritoryState> Territories { get; init; } = new();
 
     /// <summary>Action card draw deck (definition ids, expanded by count, shuffled).</summary>
-    public List<string> ActionDeck { get; } = new();
-    public List<string> ActionDiscard { get; } = new();
+    public List<string> ActionDeck { get; init; } = new();
+    public List<string> ActionDiscard { get; init; } = new();
 
     /// <summary>Epic Tale draw deck and (face-up) discard.</summary>
-    public List<string> EpicDeck { get; } = new();
-    public List<string> EpicDiscard { get; } = new();
+    public List<string> EpicDeck { get; init; } = new();
+    public List<string> EpicDiscard { get; init; } = new();
 
     /// <summary>The one Action card set aside face-down during the deal (used by Cove etc.).</summary>
     public string? SetAsideActionCard { get; set; }
@@ -64,7 +73,7 @@ public sealed class GameState
     public bool BrennHasOpened { get; set; }
 
     /// <summary>Ordered log of applied moves — enables deterministic replay from the seed.</summary>
-    public List<string> IntentLog { get; } = new();
+    public List<string> IntentLog { get; init; } = new();
 
     /// <summary>Index into <see cref="Players"/> of the current Brenn (round leader).</summary>
     public int BrennIndex { get; set; }
@@ -77,8 +86,8 @@ public sealed class GameState
     /// <summary>Winner's player id once the game is over; null otherwise.</summary>
     public string? WinnerId { get; set; }
 
-    public PlayerState CurrentPlayer => Players[CurrentPlayerIndex];
-    public PlayerState Brenn => Players[BrennIndex];
+    [JsonIgnore] public PlayerState CurrentPlayer => Players[CurrentPlayerIndex];
+    [JsonIgnore] public PlayerState Brenn => Players[BrennIndex];
 
     public PlayerState? PlayerById(string id) => Players.FirstOrDefault(p => p.PlayerId == id);
     public PlayerState? PlayerByColor(ClanColor color) => Players.FirstOrDefault(p => p.Color == color);

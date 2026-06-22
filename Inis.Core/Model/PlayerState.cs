@@ -9,10 +9,10 @@ public sealed class PlayerState
     public bool IsAi { get; init; }
 
     /// <summary>Action + Epic Tale cards currently held (by card definition id).</summary>
-    public List<string> Hand { get; } = new();
+    public List<string> Hand { get; init; } = new();
 
     /// <summary>Advantage cards this player holds face-up (territory advantages in play).</summary>
-    public List<string> Advantages { get; } = new();
+    public List<string> Advantages { get; init; } = new();
 
     /// <summary>Deed tokens — each acts as a wild +1 toward one victory condition.</summary>
     public int Deeds { get; set; }

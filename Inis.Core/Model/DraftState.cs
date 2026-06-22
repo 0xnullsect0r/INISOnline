@@ -27,4 +27,11 @@ public sealed class DraftState
     /// <summary>Number of sub-drafts (1 for 3–4 players, 2 for the 2-player double draft).</summary>
     public int SubDraftCount { get; init; } = 1;
     public int SubDraft { get; set; }
+
+    /// <summary>
+    /// Action cards left over after the initial deal — the draw pool for the 2-player
+    /// second sub-draft. Kept in the (serialized) draft state, not an engine field, so a
+    /// game persisted mid-draft can be reconstructed and continue dealing identically.
+    /// </summary>
+    public List<string> LeftoverDeck { get; init; } = new();
 }

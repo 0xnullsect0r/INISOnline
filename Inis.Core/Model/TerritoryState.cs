@@ -10,7 +10,7 @@ public sealed class TerritoryState
     public required string DefinitionId { get; init; }
 
     /// <summary>Clans present, keyed by clan color.</summary>
-    public Dictionary<ClanColor, int> Clans { get; } = new();
+    public Dictionary<ClanColor, int> Clans { get; init; } = new();
 
     public int Sanctuaries { get; set; }
     public int Citadels { get; set; }
@@ -23,7 +23,7 @@ public sealed class TerritoryState
     public int TotalCitadels => Citadels + (HasCapital ? 1 : 0);
 
     /// <summary>Instance ids of adjacent territories.</summary>
-    public HashSet<string> Adjacent { get; } = new();
+    public HashSet<string> Adjacent { get; init; } = new();
 
     public int TotalClans => Clans.Values.Sum();
 

@@ -18,20 +18,20 @@ public sealed class ClashState
     public bool InResolution { get; set; }
 
     /// <summary>Clans sheltered in Citadels this clash, by color (protected / not exposed).</summary>
-    public Dictionary<ClanColor, int> Sheltered { get; } = new();
+    public Dictionary<ClanColor, int> Sheltered { get; init; } = new();
 
     /// <summary>Cursor into <see cref="Order"/> for whichever step is active.</summary>
     public int Cursor { get; set; }
 
     /// <summary>Players who have agreed (this go-around) to end the clash peacefully.</summary>
-    public HashSet<string> AgreedToEnd { get; } = new();
+    public HashSet<string> AgreedToEnd { get; init; } = new();
 
     /// <summary>When an Attack is pending a response: who attacked and who must answer.</summary>
     public string? PendingAttackerId { get; set; }
     public string? PendingTargetId { get; set; }
 
     /// <summary>Further territories needing a clash after this one resolves.</summary>
-    public List<string> QueuedTerritories { get; } = new();
+    public List<string> QueuedTerritories { get; init; } = new();
 
     /// <summary>Set once the Festival's "initiator loses a clan" has been applied.</summary>
     public bool FestivalApplied { get; set; }

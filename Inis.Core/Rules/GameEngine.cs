@@ -25,7 +25,9 @@ public sealed class GameEngine
     {
         State = state;
         Data = data ?? GameData.Default;
-        _rng = new DeterministicRng(state.Seed);
+        // Resume the RNG at the persisted cursor so a reconstructed game (e.g. reloaded from
+        // the database) keeps drawing the identical deterministic sequence.
+        _rng = new DeterministicRng(state.Seed, state.RngCursor);
     }
 
     public PendingDecision? Pending => State.Pending;
@@ -52,8 +54,12 @@ public sealed class GameEngine
         engine.BuildEpicDeck();
         engine.SetupBoard(seats.Count);
         engine.BeginAssembly();
+        engine.SyncRngCursor();
         return engine;
     }
+
+    /// <summary>Writes the live RNG position back into the (persistable) state.</summary>
+    private void SyncRngCursor() => State.RngCursor = _rng.Cursor;
 
     private void BuildEpicDeck()
     {
@@ -215,13 +221,11 @@ public sealed class GameEngine
         {
             KeepCounts = keepCounts, Hands = hands, Held = held, Accumulated = accumulated,
             SubDraftCount = n == 2 ? 2 : 1, Round = 0, SubDraft = 0, PickerSeat = State.BrennIndex,
+            // Stash the leftover deck for the 2-player second sub-draft (persisted in state).
+            LeftoverDeck = deck,
         };
-        // Stash the leftover deck for the 2-player second sub-draft.
-        _draftDeck = deck;
         State.Pending = new PendingDecision { Kind = PendingKind.Draft, PlayerId = State.Players[State.BrennIndex].PlayerId };
     }
-
-    private List<string> _draftDeck = new();
 
     private static void DealHands(List<string> deck, List<string>[] hands, int perHand)
     {
@@ -314,7 +318,7 @@ public sealed class GameEngine
         {
             // 2-player: deal a fresh set of 3 and run the second sub-draft.
             for (var i = 0; i < n; i++) { d.Hands[i].Clear(); d.Held[i].Clear(); }
-            DealHands(_draftDeck, d.Hands, 3);
+            DealHands(d.LeftoverDeck, d.Hands, 3);
             d.Round = 0;
             d.PickerSeat = State.BrennIndex;
             State.Pending = DraftPending(State.BrennIndex);
@@ -413,6 +417,7 @@ public sealed class GameEngine
             default:
                 throw new InvalidOperationException($"Cannot act during {pending.Kind}.");
         }
+        SyncRngCursor();
         return _events;
     }
 
