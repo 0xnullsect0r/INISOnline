@@ -16,6 +16,12 @@ public sealed class TerritoryState
     public int Citadels { get; set; }
     public bool HasCapital { get; set; }
 
+    /// <summary>True while the Festival marker sits here (set by the Festival Action card).</summary>
+    public bool HasFestival { get; set; }
+
+    /// <summary>Total Citadels here, including the Capital's (which functions as a Citadel).</summary>
+    public int TotalCitadels => Citadels + (HasCapital ? 1 : 0);
+
     /// <summary>Instance ids of adjacent territories.</summary>
     public HashSet<string> Adjacent { get; } = new();
 

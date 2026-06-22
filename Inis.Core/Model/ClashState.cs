@@ -1,0 +1,40 @@
+namespace Inis.Core.Model;
+
+/// <summary>
+/// State of a clash being resolved in a territory. A clash has a Citadels step (other
+/// players shelter clans) followed by a Resolution step (players with exposed clans take
+/// turns performing one maneuver each) until it ends. Extra clashes spawned by a single
+/// effect (e.g. Migration) are queued and resolved one at a time.
+/// </summary>
+public sealed class ClashState
+{
+    public required string TerritoryId { get; init; }
+    public required string InstigatorId { get; init; }
+
+    /// <summary>Player ids in resolution order, beginning with the instigator.</summary>
+    public required List<string> Order { get; init; }
+
+    /// <summary>False during the Citadels step, true once Resolution begins.</summary>
+    public bool InResolution { get; set; }
+
+    /// <summary>Clans sheltered in Citadels this clash, by color (protected / not exposed).</summary>
+    public Dictionary<ClanColor, int> Sheltered { get; } = new();
+
+    /// <summary>Cursor into <see cref="Order"/> for whichever step is active.</summary>
+    public int Cursor { get; set; }
+
+    /// <summary>Players who have agreed (this go-around) to end the clash peacefully.</summary>
+    public HashSet<string> AgreedToEnd { get; } = new();
+
+    /// <summary>When an Attack is pending a response: who attacked and who must answer.</summary>
+    public string? PendingAttackerId { get; set; }
+    public string? PendingTargetId { get; set; }
+
+    /// <summary>Further territories needing a clash after this one resolves.</summary>
+    public List<string> QueuedTerritories { get; } = new();
+
+    /// <summary>Set once the Festival's "initiator loses a clan" has been applied.</summary>
+    public bool FestivalApplied { get; set; }
+
+    public int ShelteredTotal => Sheltered.Values.Sum();
+}

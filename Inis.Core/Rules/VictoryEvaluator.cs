@@ -30,7 +30,31 @@ public static class VictoryEvaluator
 
     /// <summary>True if the player meets at least one condition (deeds may be spent as wilds).</summary>
     public static bool MeetsAny(GameState state, PlayerState player)
-        => Evaluate(state, player).Any(p => p.Met);
+        => CountConditionsMet(state, player) >= 1;
+
+    /// <summary>
+    /// Number of victory conditions the player can satisfy at once, allocating Deed tokens
+    /// optimally — each Deed adds +1 to a single condition and can complete only one. This is
+    /// the value the Assembly victory check compares between pretenders.
+    /// </summary>
+    public static int CountConditionsMet(GameState state, PlayerState player)
+    {
+        var shortfalls = new[]
+        {
+            Math.Max(0, Threshold - LeadershipValue(state, player.Color)),
+            Math.Max(0, Threshold - LandValue(state, player.Color)),
+            Math.Max(0, Threshold - ReligionValue(state, player.Color)),
+        }.OrderBy(s => s).ToArray();
+
+        var deeds = player.Deeds;
+        var met = 0;
+        foreach (var need in shortfalls)
+        {
+            if (need == 0) { met++; continue; }
+            if (deeds >= need) { deeds -= need; met++; }
+        }
+        return met;
+    }
 
     private static VictoryProgress Progress(VictoryCondition condition, int rawValue, int deeds)
     {
