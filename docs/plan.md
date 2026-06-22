@@ -25,7 +25,15 @@
   card, legal-move API, debug command API, seeded replay. 56 xUnit tests green.
   Documented simplifications: Triskel reactive-window timing and a few
   Advantage/Epic effects are not yet fully modeled (see `docs/rules.md`).
-- **NEXT: Phase 3 (Godot client UI shell + offline/hotseat) drives the engine.**
+- **Phase 4 (AI opponents): DONE** — deterministic `HeuristicAi` + `AiRunner`
+  driving the public `LegalMoves`/`Apply` API (single-player, server seat-fill,
+  engine fuzzing). AI-vs-AI soak tests play full games across seeds/player counts
+  asserting no exceptions, an always-legal pending decision until game-over, and
+  clan conservation every step, plus same-seed determinism and reachable winners.
+  CI green (run #9).
+- **NEXT: Phase 3 (Godot client UI shell + offline/hotseat) and/or Phase 5
+  (server game sessions wiring the engine over WebSocket).** Phase 3 needs the
+  Godot editor to validate; Phase 5 is .NET and CI-verifiable.
 
 ## Environment notes
 - `.NET 10 SDK` and `Godot` are NOT preinstalled; install the SDK in a fresh
