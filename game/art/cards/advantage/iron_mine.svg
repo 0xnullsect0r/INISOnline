@@ -11,5 +11,5 @@
     <circle cx="0" cy="-7" r="4" fill="#3f6b43"/>
   </g>
   <rect x="22" y="250" width="256" height="140" rx="10" fill="#ffffff" opacity="0.45"/>
-  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">Force an opponent to discard an</tspan><tspan x="32" y="299">Action card to oppose you.</tspan></text>
+  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">When you make an Attack, the</tspan><tspan x="32" y="299">defender must both remove an</tspan><tspan x="32" y="320">exposed clan and discard an Action</tspan><tspan x="32" y="341">card (if they have one).</tspan></text>
 </svg>

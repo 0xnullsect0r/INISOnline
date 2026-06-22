@@ -29,6 +29,17 @@ public sealed record CardDefinition
     /// <summary>For Advantage cards: the territory id this advantage is attached to.</summary>
     public string? TerritoryId { get; init; }
 
+    /// <summary>
+    /// True for Action cards used only in 4-player games (marked with a "4" in the corner).
+    /// Setup removes these when fewer than four players are seated.
+    /// </summary>
+    public bool FourPlayerOnly { get; init; }
+
+    /// <summary>
+    /// Name of the expansion a card originates from (e.g. "Seasons of Inis"); null for base game.
+    /// </summary>
+    public string? Expansion { get; init; }
+
     /// <summary>Relative path (under assets) to the card's art, if any.</summary>
     public string? Art { get; init; }
 

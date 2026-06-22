@@ -11,5 +11,5 @@
     <circle cx="0" cy="-7" r="4" fill="#3f6b43"/>
   </g>
   <rect x="22" y="250" width="256" height="140" rx="10" fill="#ffffff" opacity="0.45"/>
-  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">Keep an Epic Tale instead of</tspan><tspan x="32" y="299">discarding it.</tspan></text>
+  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">Remove one of your own clans to</tspan><tspan x="32" y="299">retrieve an Epic Tale you would</tspan><tspan x="32" y="320">otherwise discard, keeping it</tspan><tspan x="32" y="341">instead.</tspan></text>
 </svg>

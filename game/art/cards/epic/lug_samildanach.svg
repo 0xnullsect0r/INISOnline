@@ -11,5 +11,5 @@
     <circle cx="0" cy="-7" r="4" fill="#3c3a6e"/>
   </g>
   <rect x="22" y="250" width="256" height="140" rx="10" fill="#ffffff" opacity="0.45"/>
-  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">Keep a card just nullified by</tspan><tspan x="32" y="299">Geis.</tspan></text>
+  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">(Triskel) Keep a card that has</tspan><tspan x="32" y="299">just been cancelled by Geis</tspan><tspan x="32" y="320">instead of discarding it.</tspan></text>
 </svg>

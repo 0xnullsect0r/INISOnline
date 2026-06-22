@@ -11,5 +11,5 @@
     <circle cx="0" cy="-7" r="4" fill="#3c3a6e"/>
   </g>
   <rect x="22" y="250" width="256" height="140" rx="10" fill="#ffffff" opacity="0.45"/>
-  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">A war omen; influence a clash.</tspan></text>
+  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">You may flip the Flock of Crows</tspan><tspan x="32" y="299">token, then start a clash in any</tspan><tspan x="32" y="320">territory and choose a present</tspan><tspan x="32" y="341">player to be the instigator.</tspan></text>
 </svg>

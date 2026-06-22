@@ -11,5 +11,5 @@
     <circle cx="0" cy="-7" r="4" fill="#3f6b43"/>
   </g>
   <rect x="22" y="250" width="256" height="140" rx="10" fill="#ffffff" opacity="0.45"/>
-  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">Ignore an attack (do not remove a</tspan><tspan x="32" y="299">clan); then draw an Epic Tale or</tspan><tspan x="32" y="320">discard an Action card.</tspan></text>
+  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">When an Attack is made against you</tspan><tspan x="32" y="299">in the Hills, ignore it (remove no</tspan><tspan x="32" y="320">clan and discard no card); then</tspan><tspan x="32" y="341">draw an Epic Tale or discard an</tspan><tspan x="32" y="362">Action card.</tspan></text>
 </svg>

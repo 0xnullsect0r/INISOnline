@@ -11,5 +11,5 @@
     <circle cx="0" cy="-7" r="4" fill="#3f6b43"/>
   </g>
   <rect x="22" y="250" width="256" height="140" rx="10" fill="#ffffff" opacity="0.45"/>
-  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">Chieftain advantage of the</tspan><tspan x="32" y="299">Meadows.</tspan></text>
+  <text x="32" y="278" font-family="Georgia, serif" font-size="15" fill="#2b2218"><tspan x="32" y="278">When you would draw an Epic Tale,</tspan><tspan x="32" y="299">draw one extra, keep one of them</tspan><tspan x="32" y="320">and discard the rest.</tspan></text>
 </svg>
