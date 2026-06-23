@@ -21,8 +21,8 @@ Early development. See the implementation plan and per-area docs in [`docs/`](do
 | AI opponents | 4 | **done** — heuristic AI + AI-vs-AI soak tests (CI green) |
 | `INISServer` (ASP.NET, .NET 10) | 5 | **done** — lobbies, authoritative WebSocket sessions, AI seats, redacted sync, EF migrations + persistence (CI green) |
 | Online multiplayer (client) | 6 | **done** — auth/lobby UI + WebSocket game sync (validated E2E against a live server) |
-| LAN multiplayer | 7 | not started |
-| Settings / audio / Debug screen | 8 | not started |
+| LAN multiplayer | 7 | **done** — client-hosted session + UDP discovery (loopback-validated) |
+| Settings / audio / Debug screen | 8 | **done** — settings, original procedural audio, gated Debug/Cheat |
 | Cross-platform export | 9 | not started |
 | *Seasons of Inis* expansion | 10 | later |
 | 6–8 player extended mode | 11 | later |

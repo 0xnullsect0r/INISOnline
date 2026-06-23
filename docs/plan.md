@@ -58,8 +58,18 @@
   OnlineLobby cover login/register, create/join-by-code, ready-up, host AI-fill and
   start. Validated end-to-end against a live server (Postgres + INISServer) by a
   headless OnlineSmoke playing a full game to GameOver.
-- **NEXT: Phase 7 (LAN multiplayer)** — client-hosted embedded session + UDP-broadcast
-  discovery; peers join via the same WebSocket protocol `RemoteGame` already speaks.
+- **Phase 7 (LAN multiplayer): DONE** — the client hosts an authoritative session
+  (`LanHost`) speaking the same WebSocket protocol as the online server; peers join
+  with a `Join` handshake (`LanClientGame`), AI fills empty seats, and the host plays
+  in-process (`LanHostGame`). UDP-broadcast discovery (`LanDiscovery`). One shared
+  client base (`WsGameSourceBase`) backs both online and LAN. Loopback-validated.
+- **Phase 8 (settings, audio, Debug screen): DONE** — `Settings` (persisted to
+  `user://settings.cfg`, applied live to the audio buses + window), `AudioManager`
+  autoload (pooled SFX + looping ambient music) with original audio synthesized by
+  `tools/gen-audio.py`, a tabbed `SettingsPanel`, and the gated Debug/Cheat panel
+  (code `INIS`) that grants cards / sets deeds via the server-authoritative
+  `DebugCommand` path in every mode.
+- **NEXT: Phase 9 (cross-platform export & packaging).**
 
 ## Environment notes
 - `.NET 10 SDK` and `Godot` are NOT preinstalled; install the SDK in a fresh
