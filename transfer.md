@@ -56,16 +56,16 @@ text (never the publisher's verbatim wording). Keep it that way.
 | 4 | AI opponents + soak tests | **DONE**, CI green (run #9) |
 | 5 | Server game sessions over WebSocket | **DONE**, CI green — lobbies, authoritative WS sessions, AI seats, redacted sync, EF migrations + game persistence, integration tests |
 | 3 | Godot client (2.5D, offline/hotseat) | **DONE** — design system, menus, mode/setup, engine-driven HUD, 2.5D board (tilted 3D, textured hex tiles, low-poly pieces, orbit/pan/zoom, click-to-target). Headless-smoke-validated. |
-| 6 | Online multiplayer in client | not started |
-| 7 | LAN multiplayer | not started |
+| 6 | Online multiplayer in client | **DONE** — auth/lobby UI, WebSocket game sync, reconnection, spectator-ready; validated E2E vs a live server (Postgres + INISServer) |
+| 7 | LAN multiplayer | **NEXT** — client-hosted embedded session + UDP discovery |
 | 8 | Settings, audio, polish, Debug screen | not started |
 | 9 | Cross-platform export & packaging | not started |
 | 10 | *Seasons of Inis* expansion | later |
 | 11 | 6–8 player extended mode | later |
 | 12 | Release CI/CD (installers) | later |
 
-**Recommended next order:** **Phase 3** (Godot client) → 6 → 7 → 8 → 9 → 10 → 11
-→ 12. Phase 3 needs a session that can run the Godot
+**Recommended next order:** **Phase 7** (LAN) → 8 → 9 → 10 → 11 → 12. Phases 0–6
+are done. Client work needs a session that can run the Godot
 editor; Phase 5/AI/engine work only needs the .NET SDK + CI.
 
 ## 4. Repo layout & key files
@@ -190,9 +190,35 @@ Integration tests: `INISServer.Tests` (WebApplicationFactory) — auth, friends,
 a scripted WebSocket bot playing a full AI-filled game to `GameOver`. Wired into CI
 (`dotnet test INISServer.Tests`).
 
-### Notes for Phase 6 (client online MP) — reuse, don't reinvent
-- Reuse `Inis.Core/Net` on the client: build intents with the same `Envelope`,
-  send the legal `Move` from a `TurnPrompt` back under type `"Intent"`, deserialize
-  `StateSync` as a `GameState` (masked cards are `"?"`).
-- WS connect: `wss://.../ws/game/{id}?access_token=<JWT>`. The server sends `Hello`
-  then a full redacted `StateSync` (+ `TurnPrompt` if it's your turn) on connect.
+## 10. Phases 3 & 6 — DONE (client)
+
+- **Phase 3 (offline/hotseat + 2.5D board):** code-built Celtic theme/design system
+  (`game/src/Theme`), `ScreenManager` navigation, MainMenu/ModeSelect/GameSetup, and
+  a `GameHud` driven by `IGameSource`. `LocalGame` runs the embedded engine (legal
+  moves, AI auto-play). `game/src/Board` renders the 2.5D board into a SubViewport:
+  tilted orbit/pan/zoom camera, flat textured hex tiles, low-poly clan/building
+  meshes, gold highlight, raycast picking → click-to-target card play.
+- **Phase 6 (online MP):** `IGameSource` abstracts the HUD source so `LocalGame`
+  (offline) and `RemoteGame` (online) share one HUD. `game/src/Net`: `Session`
+  (tokens+endpoint), `InisHttp` (REST), `RemoteGame` (`ClientWebSocket` reusing
+  `Inis.Core/Net`; background receive loop, main-thread `Poll`, auto-reconnect).
+  Screens: AuthScreen, OnlineMenu, OnlineLobby (poll + ready/AI-fill/start, auto-
+  connects on start). **Validated E2E against a live server** by
+  `scenes/OnlineSmoke.tscn` (register→lobby→start→full WS game to GameOver).
+
+**Client validation recipe** (no CI for Godot): start Postgres + `dotnet run
+--project INISServer` (set `ConnectionStrings__Postgres`, `ASPNETCORE_URLS`); then
+`dotnet build game/INISOnline.csproj` and `godot --headless res://scenes/SmokeTest.tscn`
+(offline) and `.../OnlineSmoke.tscn` (online, `INIS_SERVER` env overrides the URL).
+Always export `DOTNET_ROOT=$HOME/.dotnet` for the Godot run.
+
+### Phase 7 starter notes (LAN, next undone)
+- Goal: the **client hosts** an embedded authoritative session and LAN peers join
+  via the *same* WebSocket protocol — one netcode path. `RemoteGame` already speaks
+  it, so a LAN client just points at `ws://<host-ip>:<port>/ws/game/{id}`.
+- Host side: run an in-process session that owns a `GameEngine` and does the same
+  redacted broadcast as `INISServer/Game/GameSession` (consider extracting the
+  session/broadcast core so host + server share it). A lightweight WS server in the
+  client (e.g. `HttpListener` WebSockets, or Godot's `TcpServer` + `WebSocketPeer`).
+- Discovery: UDP broadcast a small beacon (game name, host ip/port); a LAN browser
+  screen lists beacons and connects. No auth needed on LAN (or a simple room code).

@@ -51,9 +51,15 @@
   building meshes, gold highlight, raycast tile picking → click-to-target card play.
   Validated by running Godot 4.4 headless (`scenes/SmokeTest.tscn`); CI does not
   build the Godot project.
-- **NEXT: Phase 6 (online multiplayer in client)** — wire the client to the Phase 5
-  server: auth/register UI, friends, lobby browser/invites, WebSocket game sync,
-  reconnection, spectate.
+- **Phase 6 (online multiplayer in client): DONE** — `IGameSource` lets one HUD run
+  offline (`LocalGame`) or online (`RemoteGame`). Net layer: `Session`, `InisHttp`
+  (REST auth/lobbies/friends), `RemoteGame` (ClientWebSocket reusing `Inis.Core/Net`,
+  background receive + main-thread poll + auto-reconnect). AuthScreen, OnlineMenu and
+  OnlineLobby cover login/register, create/join-by-code, ready-up, host AI-fill and
+  start. Validated end-to-end against a live server (Postgres + INISServer) by a
+  headless OnlineSmoke playing a full game to GameOver.
+- **NEXT: Phase 7 (LAN multiplayer)** — client-hosted embedded session + UDP-broadcast
+  discovery; peers join via the same WebSocket protocol `RemoteGame` already speaks.
 
 ## Environment notes
 - `.NET 10 SDK` and `Godot` are NOT preinstalled; install the SDK in a fresh
