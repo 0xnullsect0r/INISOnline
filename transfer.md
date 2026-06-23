@@ -55,7 +55,7 @@ text (never the publisher's verbatim wording). Keep it that way.
 | 2 | Core rules engine | **DONE**, CI green (engine tests) |
 | 4 | AI opponents + soak tests | **DONE**, CI green (run #9) |
 | 5 | Server game sessions over WebSocket | **DONE**, CI green — lobbies, authoritative WS sessions, AI seats, redacted sync, EF migrations + game persistence, integration tests |
-| 3 | Godot client (2.5D, offline/hotseat) | **IN PROGRESS** — design system, menus, mode/setup + engine-driven HUD done (offline/hotseat playable, headless-smoke-validated). TODO: 2.5D 3D board view, richer card-target UI |
+| 3 | Godot client (2.5D, offline/hotseat) | **DONE** — design system, menus, mode/setup, engine-driven HUD, 2.5D board (tilted 3D, textured hex tiles, low-poly pieces, orbit/pan/zoom, click-to-target). Headless-smoke-validated. |
 | 6 | Online multiplayer in client | not started |
 | 7 | LAN multiplayer | not started |
 | 8 | Settings, audio, polish, Debug screen | not started |

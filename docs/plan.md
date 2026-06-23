@@ -43,8 +43,17 @@
   `EnsureCreated()` with persisted games (jsonb). Server-reload determinism debt
   fixed. Integration tests (auth + friends + a scripted WebSocket bot playing a full
   game) wired into CI. CI green.
-- **NEXT: Phase 3 (Godot client UI shell + offline/hotseat).** Needs the Godot
-  editor to validate; CI does not build the Godot project.
+- **Phase 3 (Godot client UI shell + offline/hotseat): DONE** — code-built Celtic
+  theme/design system, ScreenManager navigation, MainMenu/ModeSelect/GameSetup, and
+  an in-game HUD that drives the embedded `Inis.Core` engine (legal-move buttons, AI
+  auto-play, banners, action log). The 2.5D RISK-style board renders into a
+  SubViewport: tilted orbit/pan/zoom camera, flat textured hex tiles, low-poly clan/
+  building meshes, gold highlight, raycast tile picking → click-to-target card play.
+  Validated by running Godot 4.4 headless (`scenes/SmokeTest.tscn`); CI does not
+  build the Godot project.
+- **NEXT: Phase 6 (online multiplayer in client)** — wire the client to the Phase 5
+  server: auth/register UI, friends, lobby browser/invites, WebSocket game sync,
+  reconnection, spectate.
 
 ## Environment notes
 - `.NET 10 SDK` and `Godot` are NOT preinstalled; install the SDK in a fresh

@@ -17,7 +17,7 @@ Early development. See the implementation plan and per-area docs in [`docs/`](do
 | Repo scaffolding | 0 | **done** (CI green) |
 | Game assets (SVG) | 1 | **done** — verified data + art pipeline |
 | Rules engine (`Inis.Core`) | 2 | **done** (CI green) |
-| Godot client (offline/hotseat) | 3 | not started |
+| Godot client (offline/hotseat) | 3 | **done** — theme, menus, setup, engine-driven HUD + 2.5D board (validated in the Godot editor) |
 | AI opponents | 4 | **done** — heuristic AI + AI-vs-AI soak tests (CI green) |
 | `INISServer` (ASP.NET, .NET 10) | 5 | **done** — lobbies, authoritative WebSocket sessions, AI seats, redacted sync, EF migrations + persistence (CI green) |
 | Online multiplayer (client) | 6 | not started |
