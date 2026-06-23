@@ -22,6 +22,10 @@ public sealed class Lobby
     public Guid Id { get; } = Guid.NewGuid();
     public required string InviteCode { get; init; }
     public required Guid HostUserId { get; init; }
+
+    /// <summary>True if this game uses the Seasons of Inis expansion (enables a 5th seat).</summary>
+    public bool Seasons { get; init; }
+
     public List<LobbySeat> Seats { get; } = new();
 
     /// <summary>Users explicitly invited (friend invites) — informational; codes still let anyone join.</summary>

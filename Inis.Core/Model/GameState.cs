@@ -14,6 +14,9 @@ public sealed class GameState
     /// <summary>Seed for the deterministic RNG — enables reproducible games / replays.</summary>
     public required int Seed { get; init; }
 
+    /// <summary>Game configuration (expansion toggle); persisted so a reload knows the content set.</summary>
+    public GameOptions Options { get; set; } = GameOptions.Base;
+
     /// <summary>
     /// Number of RNG draws consumed so far. Persisted alongside the rest of the state so a
     /// reconstructed engine resumes the deterministic sequence exactly where it left off,

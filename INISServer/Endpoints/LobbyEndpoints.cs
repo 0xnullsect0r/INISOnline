@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InisServer.Endpoints;
 
-public sealed record CreateLobbyRequest(int Capacity = 4);
+public sealed record CreateLobbyRequest(int Capacity = 4, bool Seasons = false);
 public sealed record JoinByCodeRequest(string Code);
 public sealed record ReadyRequest(bool Ready);
 public sealed record SeatAiRequest(bool Ai);
@@ -24,9 +24,10 @@ public static class LobbyEndpoints
 
         g.MapPost("/", (CreateLobbyRequest req, ClaimsPrincipal user, GameSessionManager mgr) =>
         {
-            if (req.Capacity is < 2 or > 5)
-                return Results.BadRequest(new { error = "Capacity must be 2–5." });
-            var lobby = mgr.CreateLobby(UserId(user), Username(user), req.Capacity);
+            var max = req.Seasons ? 5 : 4;
+            if (req.Capacity < 2 || req.Capacity > max)
+                return Results.BadRequest(new { error = $"Capacity must be 2–{max}." });
+            var lobby = mgr.CreateLobby(UserId(user), Username(user), req.Capacity, req.Seasons);
             return Results.Ok(View(lobby, UserId(user)));
         });
 

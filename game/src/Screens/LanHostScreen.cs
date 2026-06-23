@@ -20,9 +20,12 @@ public partial class LanHostScreen : Screen
     private double _announceClock;
 
     private int _count = 3;
+    private bool _seasons;
     private VBoxContainer _column = null!;
     private Label _info = null!;
     private VBoxContainer _seatList = null!;
+
+    private int MaxPlayers => _seasons ? 5 : 4;
 
     public override void _Ready()
     {
@@ -53,6 +56,10 @@ public partial class LanHostScreen : Screen
         row.AddChild(plus);
         _column.AddChild(row);
 
+        var seasons = new CheckButton { Text = "Seasons of Inis (5 players)", ButtonPressed = _seasons };
+        seasons.Toggled += on => { _seasons = on; SetCount(_count); };
+        _column.AddChild(seasons);
+
         var open = Ui.MenuButton("Open Lobby");
         open.Pressed += OpenLobby;
         _column.AddChild(open);
@@ -64,14 +71,14 @@ public partial class LanHostScreen : Screen
 
     private void SetCount(int value)
     {
-        _count = Math.Clamp(value, 2, 5);
+        _count = Math.Clamp(value, 2, MaxPlayers);
         if (_column.FindChild("CountLabel", true, false) is Label l) l.Text = $"{_count} players";
     }
 
     private void OpenLobby()
     {
         _host = new LanHost();
-        if (!_host.Open(_count)) { BuildError("Could not open a network port."); return; }
+        if (!_host.Open(_count, _seasons)) { BuildError("Could not open a network port."); return; }
         Nav.AddChild(_host);              // persist the host across the screen change to the game
         _host.ClaimLocalSeat(_hostName);
         _announcer = new LanDiscovery.Announcer();

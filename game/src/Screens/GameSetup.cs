@@ -22,9 +22,12 @@ public partial class GameSetup : Screen
 
     private readonly Mode _mode;
     private int _count = 4;
+    private bool _seasons;
     private Label _countLabel = null!;
 
     public GameSetup(Mode mode) => _mode = mode;
+
+    private int MaxPlayers => _seasons ? 5 : 4;
 
     public override void _Ready()
     {
@@ -54,6 +57,14 @@ public partial class GameSetup : Screen
             ? "You play seat 1; the rest are AI opponents."
             : "All seats are local players sharing this device.", Palette.Muted));
 
+        var seasons = new CheckButton { Text = "Seasons of Inis expansion (adds cards + 5th clan)", ButtonPressed = _seasons };
+        seasons.Toggled += on =>
+        {
+            _seasons = on;
+            SetCount(_count); // re-clamp to the new max
+        };
+        column.AddChild(seasons);
+
         column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 12) });
         var start = Ui.MenuButton("Start Game");
         start.Pressed += Start;
@@ -66,7 +77,7 @@ public partial class GameSetup : Screen
 
     private void SetCount(int value)
     {
-        _count = Math.Clamp(value, 2, 5);
+        _count = Math.Clamp(value, 2, MaxPlayers);
         _countLabel.Text = $"{_count} players";
     }
 
@@ -81,6 +92,6 @@ public partial class GameSetup : Screen
         }
 
         var seed = (int)(Time.GetUnixTimeFromSystem() % int.MaxValue);
-        Nav.Show(new GameHud(new LocalGame(seed, seats)));
+        Nav.Show(new GameHud(new LocalGame(seed, seats, new GameOptions(_seasons))));
     }
 }

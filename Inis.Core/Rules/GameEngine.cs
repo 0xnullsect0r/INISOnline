@@ -36,13 +36,16 @@ public sealed class GameEngine
     // ------------------------------------------------------------------ setup
 
     /// <summary>Creates a fully set-up game and advances it to the first draft pick.</summary>
-    public static GameEngine Create(string gameId, int seed, IReadOnlyList<SeatConfig> seats, GameData? data = null)
+    public static GameEngine Create(string gameId, int seed, IReadOnlyList<SeatConfig> seats,
+        GameData? data = null, GameOptions? options = null)
     {
-        if (seats.Count is < 2 or > 5)
-            throw new ArgumentOutOfRangeException(nameof(seats), "Supported player counts are 2–5.");
+        options ??= GameOptions.Base;
+        if (seats.Count < 2 || seats.Count > options.MaxPlayers)
+            throw new ArgumentOutOfRangeException(nameof(seats),
+                $"{options.Label} supports 2–{options.MaxPlayers} players.");
 
         data ??= GameData.Default;
-        var state = new GameState { GameId = gameId, Seed = seed, PretendersRemaining = seats.Count };
+        var state = new GameState { GameId = gameId, Seed = seed, Options = options, PretendersRemaining = seats.Count };
         foreach (var s in seats)
             state.Players.Add(new PlayerState
             {
@@ -193,11 +196,18 @@ public sealed class GameEngine
         State.AssemblyStep = AssemblyStep.Draft;
         var n = State.Players.Count;
 
-        // Build the Action deck for this player count (drop 4-player-only cards when < 4).
+        // Build the Action deck for this game's content set (base vs. Seasons of Inis) and player
+        // count. In a Seasons game the expansion cards join the deck and their "updated" variants
+        // replace the matching base cards; 4-player-only cards drop below four players.
+        var seasons = State.Options.SeasonsOfInis;
+        var replacedBaseIds = Data.Cards
+            .Where(c => c.Expansion is not null && c.ResolvedEffectId != c.Id)
+            .Select(c => c.ResolvedEffectId).ToHashSet();
+
         var deck = new List<string>();
         foreach (var c in Data.Cards.Where(c => c.Type == CardType.Action))
         {
-            if (n < 4 && c.FourPlayerOnly) continue;
+            if (!IncludeAction(c, n, seasons, replacedBaseIds)) continue;
             for (var i = 0; i < c.Count; i++) deck.Add(c.Id);
         }
         _rng.Shuffle(deck);
@@ -225,6 +235,20 @@ public sealed class GameEngine
             LeftoverDeck = deck,
         };
         State.Pending = new PendingDecision { Kind = PendingKind.Draft, PlayerId = State.Players[State.BrennIndex].PlayerId };
+    }
+
+    /// <summary>Decides whether an Action card belongs in the deck for this game's content set.</summary>
+    private static bool IncludeAction(CardDefinition card, int playerCount, bool seasons,
+        HashSet<string> replacedBaseIds)
+    {
+        var isExpansion = card.Expansion is not null;
+        if (!seasons)
+            // Base game: expansion cards never appear; 4-player-only cards only with four+ players.
+            return !isExpansion && (playerCount >= 4 || !card.FourPlayerOnly);
+
+        // Seasons of Inis: add the expansion cards; drop the base cards their variants replace.
+        if (isExpansion) return true;
+        return !replacedBaseIds.Contains(card.Id) && (playerCount >= 4 || !card.FourPlayerOnly);
     }
 
     private static void DealHands(List<string> deck, List<string>[] hands, int perHand)

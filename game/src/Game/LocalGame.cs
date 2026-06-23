@@ -27,10 +27,10 @@ public sealed class LocalGame : IGameSource
     public IReadOnlyList<SeatConfig> Seats { get; }
     public List<string> LogLines { get; } = new();
 
-    public LocalGame(int seed, IReadOnlyList<SeatConfig> seats)
+    public LocalGame(int seed, IReadOnlyList<SeatConfig> seats, GameOptions? options = null)
     {
         Seats = seats;
-        _engine = GameEngine.Create("local", seed, seats);
+        _engine = GameEngine.Create("local", seed, seats, options: options);
         _aiSeats = seats.Where(s => s.IsAi).Select(s => s.PlayerId).ToHashSet();
     }
 

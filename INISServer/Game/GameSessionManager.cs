@@ -26,12 +26,14 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
 
     // --------------------------------------------------------------------- lobbies
 
-    public Lobby CreateLobby(Guid hostUserId, string hostUsername, int capacity)
+    public Lobby CreateLobby(Guid hostUserId, string hostUsername, int capacity, bool seasons = false)
     {
-        if (capacity is < 2 or > 5)
-            throw new ArgumentOutOfRangeException(nameof(capacity), "Lobbies seat 2–5 players.");
+        var max = seasons ? 5 : 4;
+        if (capacity < 2 || capacity > max)
+            throw new ArgumentOutOfRangeException(nameof(capacity),
+                $"{(seasons ? "Seasons" : "Base")} lobbies seat 2–{max} players.");
 
-        var lobby = new Lobby { InviteCode = NewInviteCode(), HostUserId = hostUserId };
+        var lobby = new Lobby { InviteCode = NewInviteCode(), HostUserId = hostUserId, Seasons = seasons };
         for (var i = 0; i < capacity; i++) lobby.Seats.Add(new LobbySeat { Index = i });
         lobby.Seats[0].UserId = hostUserId;
         lobby.Seats[0].Username = hostUsername;
@@ -135,8 +137,9 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
             if (lobby.HostUserId != hostUserId) throw new InvalidOperationException("Only the host can start.");
             if (lobby.Started) throw new InvalidOperationException("Game already started.");
 
+            var max = lobby.Seasons ? 5 : 4;
             var active = lobby.Seats.Where(s => s.UserId is not null || s.IsAi).OrderBy(s => s.Index).ToList();
-            if (active.Count is < 2 or > 5) throw new InvalidOperationException("Need 2–5 filled seats.");
+            if (active.Count < 2 || active.Count > max) throw new InvalidOperationException($"Need 2–{max} filled seats.");
             if (lobby.Seats.Any(s => s.IsOpen)) throw new InvalidOperationException("Fill or remove empty seats first.");
             if (active.Any(s => s.UserId is not null && !s.Ready)) throw new InvalidOperationException("All players must be ready.");
 
@@ -154,7 +157,8 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
 
         var gameId = Guid.NewGuid();
         var engine = GameEngine.Create(gameId.ToString(), seed,
-            seatInfos.Select(s => new SeatConfig(s.PlayerId, s.DisplayName, s.Color, s.IsAi)).ToList());
+            seatInfos.Select(s => new SeatConfig(s.PlayerId, s.DisplayName, s.Color, s.IsAi)).ToList(),
+            options: new GameOptions(lobby.Seasons));
 
         using (var scope = _scopes())
         {
