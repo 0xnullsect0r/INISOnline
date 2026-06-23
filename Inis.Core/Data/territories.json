@@ -1,0 +1,25 @@
+// INIS base game — 16 territory tiles (Matagot 2016, 2–4 players).
+// Names/terrain verified against the official rulebook (Discovery Scenario tile list,
+// territory examples) + the Esoteric Order of Gamers reference and BGG. See docs/rules.md.
+// "verified": true  -> confirmed against the official rulebook / public references.
+// Terrain is a visual classification for art; it does not change core rules.
+// NOTE: No territory begins with a Sanctuary — at setup the Brenn places the Capital
+//       plus one Sanctuary on the chosen Capital territory (handled by the engine).
+[
+  { "id": "territory.meadows",      "name": "Meadows",             "terrain": "Plains",   "advantageCardId": "advantage.meadows",      "verified": true, "art": "tiles/meadows.svg" },
+  { "id": "territory.forest",       "name": "Forest",              "terrain": "Forest",   "advantageCardId": "advantage.forest",       "verified": true, "art": "tiles/forest.svg" },
+  { "id": "territory.mountains",    "name": "Mountains",           "terrain": "Mountain", "advantageCardId": "advantage.mountains",    "verified": true, "art": "tiles/mountains.svg" },
+  { "id": "territory.highlands",    "name": "Highlands",           "terrain": "Mountain", "advantageCardId": "advantage.highlands",    "verified": true, "art": "tiles/highlands.svg" },
+  { "id": "territory.misty_lands",  "name": "Misty Lands",         "terrain": "Bog",      "advantageCardId": "advantage.misty_lands",  "verified": true, "art": "tiles/misty_lands.svg" },
+  { "id": "territory.cove",         "name": "Cove",                "terrain": "Coast",    "advantageCardId": "advantage.cove",         "verified": true, "art": "tiles/cove.svg" },
+  { "id": "territory.salt_mine",    "name": "Salt Mine",           "terrain": "Coast",    "advantageCardId": "advantage.salt_mine",    "verified": true, "art": "tiles/salt_mine.svg" },
+  { "id": "territory.iron_mine",    "name": "Iron Mine",           "terrain": "Mountain", "advantageCardId": "advantage.iron_mine",    "verified": true, "art": "tiles/iron_mine.svg" },
+  { "id": "territory.stone_circle", "name": "Stone Circle",        "terrain": "Plains",   "advantageCardId": "advantage.stone_circle", "verified": true, "art": "tiles/stone_circle.svg" },
+  { "id": "territory.swamp",        "name": "Swamp",               "terrain": "Bog",      "advantageCardId": "advantage.swamp",        "verified": true, "art": "tiles/swamp.svg" },
+  { "id": "territory.lost_vale",    "name": "Lost Vale",           "terrain": "Forest",   "advantageCardId": "advantage.lost_vale",    "verified": true, "art": "tiles/lost_vale.svg" },
+  { "id": "territory.tir_na_nog",   "name": "Gates of Tír na nÓg", "terrain": "Plains",   "advantageCardId": "advantage.tir_na_nog",   "verified": true, "art": "tiles/tir_na_nog.svg" },
+  { "id": "territory.hills",        "name": "Hills",               "terrain": "Plains",   "advantageCardId": "advantage.hills",        "verified": true, "art": "tiles/hills.svg" },
+  { "id": "territory.valley",       "name": "Valley",              "terrain": "Plains",   "advantageCardId": "advantage.valley",       "verified": true, "art": "tiles/valley.svg" },
+  { "id": "territory.plains",       "name": "Plains",              "terrain": "Plains",   "advantageCardId": "advantage.plains",       "verified": true, "art": "tiles/plains.svg" },
+  { "id": "territory.moor",         "name": "Moor",                "terrain": "Bog",      "advantageCardId": "advantage.moor",         "verified": true, "art": "tiles/moor.svg" }
+]

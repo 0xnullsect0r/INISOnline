@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140">
+  <!-- Citadel: a stone tower with crenellations. -->
+  <ellipse cx="70" cy="132" rx="46" ry="7" fill="#1c1712" opacity="0.25"/>
+  <g fill="#b8a98c" stroke="#1c1712" stroke-width="4" stroke-linejoin="round">
+    <rect x="40" y="44" width="60" height="84"/>
+    <path d="M40 44 v-14 h10 v8 h10 v-8 h10 v8 h10 v-8 h10 v14 Z"/>
+  </g>
+  <rect x="62" y="92" width="16" height="36" fill="#5a4a32" stroke="#1c1712" stroke-width="3"/>
+  <rect x="50" y="62" width="12" height="16" fill="#5a4a32"/>
+  <rect x="78" y="62" width="12" height="16" fill="#5a4a32"/>
+</svg>

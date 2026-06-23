@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- net8.0 so the same library is usable by Godot 4.4 (.NET) AND by the
+         .NET 10 server. Pure rules engine: no UI, no networking, no I/O beyond
+         reading embedded card/tile data. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Inis.Core</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Canonical card/tile data ships embedded so the engine is self-contained
+         and the server/client read identical definitions. The same JSON files
+         are consumed by the asset pipeline. -->
+    <EmbeddedResource Include="Data\**\*.json" />
+  </ItemGroup>
+
+</Project>
