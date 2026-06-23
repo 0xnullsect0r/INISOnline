@@ -31,7 +31,8 @@ public partial class ModeSelect : Screen
         column.AddChild(Mode("Local Hotseat", () =>
             Nav.Show(new GameSetup(GameSetup.Mode.Hotseat))));
         column.AddChild(Mode("LAN", () => Nav.Toast("LAN multiplayer arrives in Phase 7.")));
-        column.AddChild(Mode("Online", () => Nav.Toast("Online multiplayer arrives in Phase 6.")));
+        column.AddChild(Mode("Online", () =>
+            Nav.Show(INISOnline.Net.Session.LoggedIn ? new OnlineMenu() : new AuthScreen())));
 
         column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 12) });
         var back = Ui.MenuButton("Back");

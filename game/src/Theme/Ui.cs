@@ -40,6 +40,18 @@ public static class Ui
         return p;
     }
 
+    public static LineEdit Field(string placeholder, bool secret = false, string text = "")
+    {
+        var edit = new LineEdit
+        {
+            PlaceholderText = placeholder,
+            Secret = secret,
+            Text = text,
+            CustomMinimumSize = new Vector2(360, 0),
+        };
+        return edit;
+    }
+
     /// <summary>A full-rect background: deep slate with a soft vignette toward the edges.</summary>
     public static Control Background()
     {

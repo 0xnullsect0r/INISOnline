@@ -26,7 +26,7 @@ public partial class SmokeTest : Node
         // 1) Engine integration — an all-AI game runs to completion through LocalGame.
         var game = new LocalGame(12345, seats);
         var steps = 0;
-        while (!game.IsGameOver && steps < 5000) { game.StepAi(); steps++; }
+        while (!game.IsGameOver && steps < 5000) { game.Poll(1.0); steps++; }
         GD.Print($"SMOKE engine: gameOver={game.IsGameOver} steps={steps} winner={game.State.WinnerId}");
 
         // 2) UI integration — each screen instantiates and builds its tree without error.
@@ -40,7 +40,7 @@ public partial class SmokeTest : Node
 
         // 3) Board integration — the 2.5D board builds tiles + pieces from a live state.
         var boardGame = new LocalGame(7, seats);
-        for (var i = 0; i < 60 && !boardGame.IsGameOver; i++) boardGame.StepAi();
+        for (var i = 0; i < 60 && !boardGame.IsGameOver; i++) boardGame.Poll(1.0);
         var board = new INISOnline.Board.BoardView();
         AddChild(board);
         board.Sync(boardGame.State);

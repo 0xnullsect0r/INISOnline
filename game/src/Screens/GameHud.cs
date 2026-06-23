@@ -10,14 +10,14 @@ using Inis.Core.Moves;
 namespace INISOnline.Screens;
 
 /// <summary>
-/// The in-game HUD for offline / hotseat play. It renders the authoritative engine state —
-/// phase/turn, player banners, action log — and presents the pending player's legal moves as
-/// buttons; AI seats auto-play on a timer. The 2.5D board view is layered in by a later chunk;
-/// this proves the engine drives a full game through the UI.
+/// The in-game HUD. It renders whatever <see cref="IGameSource"/> drives the game — the embedded
+/// engine (offline/hotseat) or a server connection (online) — showing phase/turn, player banners,
+/// action log and the 2.5D board, and presenting the pending player's legal moves as buttons. The
+/// source is pumped each frame to advance AI locally or apply incoming server updates.
 /// </summary>
 public partial class GameHud : Screen
 {
-    private readonly LocalGame _game;
+    private readonly IGameSource _source;
 
     private Label _phaseLabel = null!;
     private VBoxContainer _banners = null!;
@@ -25,10 +25,10 @@ public partial class GameHud : Screen
     private ScrollContainer _logScroll = null!;
     private VBoxContainer _actions = null!;
     private BoardView _board = null!;
-    private Timer _aiTimer = null!;
     private string? _selectedTerritory;
+    private bool _renderedOnce;
 
-    public GameHud(LocalGame game) => _game = game;
+    public GameHud(IGameSource source) => _source = source;
 
     public override void _Ready()
     {
@@ -44,14 +44,12 @@ public partial class GameHud : Screen
         root.AddThemeConstantOverride("separation", 12);
         margin.AddChild(root);
 
-        // Top bar: phase / whose turn.
         var top = new PanelContainer();
-        _phaseLabel = Ui.Heading("");
+        _phaseLabel = Ui.Heading("Connecting…");
         _phaseLabel.HorizontalAlignment = HorizontalAlignment.Left;
         top.AddChild(_phaseLabel);
         root.AddChild(top);
 
-        // Middle: banners | board placeholder | log.
         var middle = new HBoxContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
         middle.AddThemeConstantOverride("separation", 12);
         root.AddChild(middle);
@@ -60,18 +58,19 @@ public partial class GameHud : Screen
         middle.AddChild(BuildBoardPanel());
         middle.AddChild(BuildLogPanel());
 
-        // Bottom: the pending player's actions.
         var actionPanel = new PanelContainer();
         _actions = new VBoxContainer();
         _actions.AddThemeConstantOverride("separation", 8);
         actionPanel.AddChild(_actions);
         root.AddChild(actionPanel);
 
-        _aiTimer = new Timer { WaitTime = 0.25, Autostart = true };
-        _aiTimer.Timeout += OnAiTick;
-        AddChild(_aiTimer);
+        if (_source.Ready) Refresh();
+    }
 
-        Refresh();
+    public override void _Process(double delta)
+    {
+        var changed = _source.Poll(delta);
+        if (_source.Ready && (changed || !_renderedOnce)) Refresh();
     }
 
     private PanelContainer BuildBannerPanel()
@@ -96,15 +95,6 @@ public partial class GameHud : Screen
         return panel;
     }
 
-    private void OnTerritoryPicked(string instanceId)
-    {
-        // Only humans pick targets, and only while a card-target is meaningful.
-        if (_game.IsAiTurn || _game.IsGameOver) return;
-        _selectedTerritory = _selectedTerritory == instanceId ? null : instanceId;
-        _board.SetSelected(_selectedTerritory);
-        RefreshActions();
-    }
-
     private PanelContainer BuildLogPanel()
     {
         var panel = new PanelContainer { CustomMinimumSize = new Vector2(320, 0) };
@@ -121,19 +111,18 @@ public partial class GameHud : Screen
         return panel;
     }
 
-    private void OnAiTick()
+    private void OnTerritoryPicked(string instanceId)
     {
-        if (_game.IsGameOver) { _aiTimer.Stop(); return; }
-        if (_game.IsAiTurn)
-        {
-            _game.StepAi();
-            Refresh();
-        }
+        if (!_source.CanLocalAct) return;
+        _selectedTerritory = _selectedTerritory == instanceId ? null : instanceId;
+        _board.SetSelected(_selectedTerritory);
+        RefreshActions();
     }
 
     private void Refresh()
     {
-        _board.Sync(_game.State);
+        _renderedOnce = true;
+        _board.Sync(_source.State);
         RefreshPhase();
         RefreshBanners();
         RefreshLog();
@@ -142,38 +131,33 @@ public partial class GameHud : Screen
 
     private void RefreshPhase()
     {
-        var s = _game.State;
-        if (_game.IsGameOver)
-        {
-            _phaseLabel.Text = $"Game over — winner: {_game.SeatName(s.WinnerId ?? "?")}";
-            return;
-        }
-        var turn = _game.Pending is { } p ? _game.SeatName(p.PlayerId) : "—";
-        _phaseLabel.Text = $"Round {s.RoundNumber} · {s.Phase} · {turn}";
+        var s = _source.State;
+        _phaseLabel.Text = _source.IsGameOver
+            ? $"Game over — {_source.StatusLine}"
+            : $"Round {s.RoundNumber} · {s.Phase} · {_source.StatusLine}";
     }
 
     private void RefreshBanners()
     {
         foreach (var child in _banners.GetChildren()) child.QueueFree();
 
-        var s = _game.State;
+        var s = _source.State;
         foreach (var player in s.Players)
         {
             var row = new HBoxContainer();
             row.AddThemeConstantOverride("separation", 8);
-
             row.AddChild(new ColorRect
             {
                 Color = Palette.Clan(player.Color),
                 CustomMinimumSize = new Vector2(18, 18),
             });
 
-            var isCurrent = _game.Pending?.PlayerId == player.PlayerId;
+            var isCurrent = _source.Pending?.PlayerId == player.PlayerId;
             var marks = string.Concat(
                 player == s.Brenn ? " ♚" : "",
                 player.HasPretenderToken ? " ✦" : "");
             row.AddChild(Ui.Body(
-                $"{_game.SeatName(player.PlayerId)}{marks}\nclans {player.ClanReserve} · deeds {player.Deeds} · hand {player.Hand.Count}",
+                $"{_source.SeatName(player.PlayerId)}{marks}\nclans {player.ClanReserve} · deeds {player.Deeds} · hand {player.Hand.Count}",
                 isCurrent ? Palette.GoldBright : Palette.Cream));
             _banners.AddChild(row);
         }
@@ -181,7 +165,7 @@ public partial class GameHud : Screen
 
     private void RefreshLog()
     {
-        _logLabel.Text = string.Join("\n", _game.Log.TakeLast(40));
+        _logLabel.Text = string.Join("\n", _source.Log.TakeLast(40));
         CallDeferred(nameof(ScrollLogToEnd));
     }
 
@@ -192,7 +176,7 @@ public partial class GameHud : Screen
     {
         foreach (var child in _actions.GetChildren()) child.QueueFree();
 
-        if (_game.IsGameOver)
+        if (_source.IsGameOver)
         {
             var back = Ui.MenuButton("Back to Menu");
             back.Pressed += () => Nav.Show(new MainMenu());
@@ -200,20 +184,20 @@ public partial class GameHud : Screen
             return;
         }
 
-        if (_game.IsAiTurn)
+        if (!_source.CanLocalAct)
         {
-            _actions.AddChild(Ui.Body("AI is thinking…", Palette.Muted));
+            _actions.AddChild(Ui.Body(_source.StatusLine, Palette.Muted));
             return;
         }
 
-        var pendingName = _game.Pending is { } p ? _game.SeatName(p.PlayerId) : "";
+        var pendingName = _source.Pending is { } p ? _source.SeatName(p.PlayerId) : "";
         _actions.AddChild(Ui.Body($"{pendingName} — choose an action:", Palette.Gold));
 
         if (_selectedTerritory is not null)
         {
             var targetRow = new HBoxContainer();
             targetRow.AddThemeConstantOverride("separation", 8);
-            targetRow.AddChild(Ui.Body($"Target: {_game.TerritoryName(_selectedTerritory)}", Palette.GoldBright));
+            targetRow.AddChild(Ui.Body($"Target: {_source.TerritoryName(_selectedTerritory)}", Palette.GoldBright));
             var clear = new Button { Text = "Clear" };
             clear.Pressed += () => { _selectedTerritory = null; _board.SetSelected(null); RefreshActions(); };
             targetRow.AddChild(clear);
@@ -225,10 +209,10 @@ public partial class GameHud : Screen
         flow.AddThemeConstantOverride("v_separation", 8);
         _actions.AddChild(flow);
 
-        foreach (var move in _game.LegalMoves())
+        foreach (var move in _source.LegalMoves())
         {
             var captured = move;
-            var button = new Button { Text = _game.Describe(move) };
+            var button = new Button { Text = _source.Describe(move) };
             button.Pressed += () => Submit(captured);
             flow.AddChild(button);
         }
@@ -236,13 +220,12 @@ public partial class GameHud : Screen
 
     private void Submit(Move move)
     {
-        // A clicked territory targets a played card (the engine ignores it when irrelevant).
         if (move.Type == MoveType.PlayCard && _selectedTerritory is not null)
             move = move with { TerritoryId = _selectedTerritory };
 
-        _game.Apply(move);
+        _source.Submit(move);
         _selectedTerritory = null;
         _board.SetSelected(null);
-        Refresh();
+        if (_source.Ready) Refresh();
     }
 }
