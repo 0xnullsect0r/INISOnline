@@ -1,8 +1,11 @@
 using System.Linq;
 using Godot;
 using INISOnline.App;
+using INISOnline.Board;
 using INISOnline.Game;
 using INISOnline.Theme;
+using Inis.Core.Model;
+using Inis.Core.Moves;
 
 namespace INISOnline.Screens;
 
@@ -21,7 +24,9 @@ public partial class GameHud : Screen
     private Label _logLabel = null!;
     private ScrollContainer _logScroll = null!;
     private VBoxContainer _actions = null!;
+    private BoardView _board = null!;
     private Timer _aiTimer = null!;
+    private string? _selectedTerritory;
 
     public GameHud(LocalGame game) => _game = game;
 
@@ -52,7 +57,7 @@ public partial class GameHud : Screen
         root.AddChild(middle);
 
         middle.AddChild(BuildBannerPanel());
-        middle.AddChild(BuildBoardPlaceholder());
+        middle.AddChild(BuildBoardPanel());
         middle.AddChild(BuildLogPanel());
 
         // Bottom: the pending player's actions.
@@ -82,14 +87,22 @@ public partial class GameHud : Screen
         return panel;
     }
 
-    private static PanelContainer BuildBoardPlaceholder()
+    private PanelContainer BuildBoardPanel()
     {
-        var board = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        var label = Ui.Body("Board view (2.5D) — added in the next chunk.", Palette.Muted);
-        label.HorizontalAlignment = HorizontalAlignment.Center;
-        label.VerticalAlignment = VerticalAlignment.Center;
-        board.AddChild(label);
-        return board;
+        var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _board = new BoardView();
+        _board.TerritoryPicked += OnTerritoryPicked;
+        panel.AddChild(_board);
+        return panel;
+    }
+
+    private void OnTerritoryPicked(string instanceId)
+    {
+        // Only humans pick targets, and only while a card-target is meaningful.
+        if (_game.IsAiTurn || _game.IsGameOver) return;
+        _selectedTerritory = _selectedTerritory == instanceId ? null : instanceId;
+        _board.SetSelected(_selectedTerritory);
+        RefreshActions();
     }
 
     private PanelContainer BuildLogPanel()
@@ -120,6 +133,7 @@ public partial class GameHud : Screen
 
     private void Refresh()
     {
+        _board.Sync(_game.State);
         RefreshPhase();
         RefreshBanners();
         RefreshLog();
@@ -195,6 +209,17 @@ public partial class GameHud : Screen
         var pendingName = _game.Pending is { } p ? _game.SeatName(p.PlayerId) : "";
         _actions.AddChild(Ui.Body($"{pendingName} — choose an action:", Palette.Gold));
 
+        if (_selectedTerritory is not null)
+        {
+            var targetRow = new HBoxContainer();
+            targetRow.AddThemeConstantOverride("separation", 8);
+            targetRow.AddChild(Ui.Body($"Target: {_game.TerritoryName(_selectedTerritory)}", Palette.GoldBright));
+            var clear = new Button { Text = "Clear" };
+            clear.Pressed += () => { _selectedTerritory = null; _board.SetSelected(null); RefreshActions(); };
+            targetRow.AddChild(clear);
+            _actions.AddChild(targetRow);
+        }
+
         var flow = new HFlowContainer();
         flow.AddThemeConstantOverride("h_separation", 8);
         flow.AddThemeConstantOverride("v_separation", 8);
@@ -204,12 +229,20 @@ public partial class GameHud : Screen
         {
             var captured = move;
             var button = new Button { Text = _game.Describe(move) };
-            button.Pressed += () =>
-            {
-                _game.Apply(captured);
-                Refresh();
-            };
+            button.Pressed += () => Submit(captured);
             flow.AddChild(button);
         }
+    }
+
+    private void Submit(Move move)
+    {
+        // A clicked territory targets a played card (the engine ignores it when irrelevant).
+        if (move.Type == MoveType.PlayCard && _selectedTerritory is not null)
+            move = move with { TerritoryId = _selectedTerritory };
+
+        _game.Apply(move);
+        _selectedTerritory = null;
+        _board.SetSelected(null);
+        Refresh();
     }
 }

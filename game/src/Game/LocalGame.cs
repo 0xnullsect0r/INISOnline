@@ -38,6 +38,10 @@ public sealed class LocalGame
     public string SeatName(string playerId) =>
         Seats.FirstOrDefault(s => s.PlayerId == playerId)?.DisplayName ?? playerId;
 
+    /// <summary>Display name of a territory instance currently on the board.</summary>
+    public string TerritoryName(string instanceId) =>
+        State.Territories.TryGetValue(instanceId, out var t) ? _data.Territory(t.DefinitionId).Name : instanceId;
+
     public IReadOnlyList<Move> LegalMoves() => _engine.LegalMoves();
 
     public void Apply(Move move) => Record(_engine.Apply(move));

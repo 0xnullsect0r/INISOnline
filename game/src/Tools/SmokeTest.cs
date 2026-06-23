@@ -38,6 +38,14 @@ public partial class SmokeTest : Node
         screens.Show(new GameHud(new LocalGame(1, seats)));
         GD.Print("SMOKE ui: screens instantiated");
 
+        // 3) Board integration — the 2.5D board builds tiles + pieces from a live state.
+        var boardGame = new LocalGame(7, seats);
+        for (var i = 0; i < 60 && !boardGame.IsGameOver; i++) boardGame.StepAi();
+        var board = new INISOnline.Board.BoardView();
+        AddChild(board);
+        board.Sync(boardGame.State);
+        GD.Print($"SMOKE board: tiles synced for {boardGame.State.Territories.Count} territories");
+
         var timer = GetTree().CreateTimer(1.5);
         timer.Timeout += () =>
         {
