@@ -21,6 +21,11 @@ game/obj/
 
 # ---- Export artifacts (produced by export presets; built in CI for releases) ----
 build/
+publish/
+packaging/linux/export-staging/
+*.flatpak
+*.msi
+*.dmg
 
 # ---- Assets pipeline output (generated PNG/atlases are regenerated from SVG) ----
 assets/export/

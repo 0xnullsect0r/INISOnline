@@ -1,0 +1,30 @@
+# Flatpak manifest for INIS Online.
+# Built in CI by flatpak-builder against a prebuilt Godot .NET Linux export.
+# The export (INISOnline.x86_64 + data_INISOnline_* + the launcher/icon/metadata)
+# is staged into packaging/linux/export-staging/ before the build.
+app-id: com.aricummings.INISOnline
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: INISOnline.sh
+finish-args:
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+  - --share=ipc
+  - --share=network   # online + LAN multiplayer
+modules:
+  - name: inisonline
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/bin
+      - cp -a INISOnline.x86_64 /app/bin/
+      - 'for d in data_INISOnline_*; do [ -e "$d" ] && cp -a "$d" /app/bin/; done; true'
+      - install -Dm755 INISOnline.sh /app/bin/INISOnline.sh
+      - install -Dm644 com.aricummings.INISOnline.desktop /app/share/applications/com.aricummings.INISOnline.desktop
+      - install -Dm644 com.aricummings.INISOnline.metainfo.xml /app/share/metainfo/com.aricummings.INISOnline.metainfo.xml
+      - install -Dm644 icon.png /app/share/icons/hicolor/256x256/apps/com.aricummings.INISOnline.png
+    sources:
+      - type: dir
+        path: export-staging

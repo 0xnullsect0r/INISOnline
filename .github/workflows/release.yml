@@ -1,8 +1,11 @@
 name: Release
 
-# Tag-driven release pipeline: pushing a version tag (e.g. v0.1.0) builds the client for every
-# platform and the server image, then attaches the artifacts to a GitHub Release. The per-push
-# CI in ci.yml remains the build/test gate; this only runs on tags.
+# Tag-driven release pipeline: pushing a version tag (e.g. v0.1.0) builds the desktop
+# installers (Linux Flatpak, Windows MSI, macOS DMG) and the server image, then attaches
+# them to a GitHub Release. The per-push CI in ci.yml remains the build/test gate.
+#
+# Mobile (iOS / Android) is NOT built here — store submission needs manual metadata,
+# screenshots, and review. See docs/release-mobile.md for the iOS + Android process.
 on:
   push:
     tags: ["v*"]
@@ -35,20 +38,10 @@ jobs:
           docker push "$IMAGE:$TAG"
           docker push "$IMAGE:latest"
 
-  # ---------------------------------------------------------------- desktop exports
-  desktop:
-    name: Export ${{ matrix.preset }}
+  # ---------------------------------------------------------------- Linux (.flatpak)
+  linux-flatpak:
+    name: Linux Flatpak
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - preset: "Linux"
-            out: INISOnline.x86_64
-            artifact: inis-linux
-          - preset: "Windows Desktop"
-            out: INISOnline.exe
-            artifact: inis-windows
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -62,24 +55,35 @@ jobs:
           include-templates: true
       - name: Build C# (export config)
         run: dotnet build game/INISOnline.sln -c ExportRelease
-      - name: Export
+      - name: Export Linux binary
         run: |
-          mkdir -p build/${{ matrix.artifact }}
-          godot --headless --path game --export-release "${{ matrix.preset }}" \
-            "../build/${{ matrix.artifact }}/${{ matrix.out }}"
-      - name: Package
-        run: cd build && zip -r "${{ matrix.artifact }}.zip" "${{ matrix.artifact }}"
+          STAGING=packaging/linux/export-staging
+          mkdir -p "$STAGING"
+          godot --headless --path game --export-release "Linux" \
+            "$GITHUB_WORKSPACE/$STAGING/INISOnline.x86_64"
+      - name: Stage launcher, desktop entry, metadata, icon
+        run: |
+          STAGING=packaging/linux/export-staging
+          cp packaging/linux/INISOnline.sh "$STAGING/"
+          cp packaging/linux/com.aricummings.INISOnline.desktop "$STAGING/"
+          cp packaging/linux/com.aricummings.INISOnline.metainfo.xml "$STAGING/"
+          sudo apt-get update && sudo apt-get install -y librsvg2-bin
+          rsvg-convert -w 256 -h 256 game/icon.svg -o "$STAGING/icon.png"
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: INISOnline.flatpak
+          manifest-path: packaging/linux/com.aricummings.INISOnline.yml
+          cache-key: flatpak-builder-${{ github.sha }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: build/${{ matrix.artifact }}.zip
+          name: inis-linux-flatpak
+          path: INISOnline.flatpak
 
-  # ---------------------------------------------------------------- macOS + iOS
-  # Needs a macOS runner and Apple signing material; runs only when those secrets exist.
-  apple:
-    name: Export macOS & iOS
-    runs-on: macos-latest
-    if: ${{ vars.ENABLE_APPLE_BUILDS == 'true' }}
+  # ---------------------------------------------------------------- Windows (.msi)
+  windows-msi:
+    name: Windows MSI
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -90,20 +94,48 @@ jobs:
           version: ${{ env.GODOT_VERSION }}
           use-dotnet: true
           include-templates: true
-      - name: Install Apple certificate and provisioning profile
+      - name: Build C# (export config)
+        run: dotnet build game/INISOnline.sln -c ExportRelease
+      - name: Export Windows binary
+        shell: bash
+        run: |
+          mkdir -p publish
+          godot --headless --path game --export-release "Windows Desktop" \
+            "$GITHUB_WORKSPACE/publish/INISOnline.exe"
+      - name: Install WiX
+        run: dotnet tool install --global wix
+      - name: Build MSI
+        run: wix build packaging/windows/INISOnline.wxs -d ExportDir=publish -o INISOnline.msi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inis-windows-msi
+          path: INISOnline.msi
+
+  # ---------------------------------------------------------------- macOS (.dmg)
+  # Signed + notarized DMG for direct distribution (NOT the Mac App Store).
+  # Needs a "Developer ID Application" certificate; see docs/build.md.
+  macos-dmg:
+    name: macOS DMG
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: true
+          include-templates: true
+      - name: Install Apple signing certificate
         env:
           APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
-          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
         run: |
           CERT_PATH=$RUNNER_TEMP/certificate.p12
-          PP_PATH=$RUNNER_TEMP/profile.mobileprovision
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           KEYCHAIN_PASSWORD=$(openssl rand -hex 16)
-
           echo "$APPLE_CERT_P12" | base64 --decode > "$CERT_PATH"
-          echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode > "$PP_PATH"
-
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
@@ -112,9 +144,6 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" \
             "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain
-
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
       - name: Build C# (export config)
         run: dotnet build game/INISOnline.sln -c ExportRelease
       - name: Export macOS (.dmg)
@@ -122,15 +151,9 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           mkdir -p build/macos
-          godot --headless --path game --export-release "macOS" ../build/macos/INISOnline.dmg
-      - name: Export iOS (.ipa)
-        env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          mkdir -p build/ios
-          godot --headless --path game --export-release "iOS" ../build/ios/INISOnline.ipa
-      - name: Notarize macOS build
-        if: ${{ vars.ENABLE_NOTARIZATION == 'true' }}
+          godot --headless --path game --export-release "macOS" \
+            "$GITHUB_WORKSPACE/build/macos/INISOnline.dmg"
+      - name: Notarize + staple
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
@@ -147,76 +170,15 @@ jobs:
         run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
       - uses: actions/upload-artifact@v4
         with:
-          name: inis-macos
+          name: inis-macos-dmg
           path: build/macos/*.dmg
-      - uses: actions/upload-artifact@v4
-        with:
-          name: inis-ios
-          path: build/ios/*.ipa
-
-  # ---------------------------------------------------------------- Android
-  android:
-    name: Export Android
-    runs-on: ubuntu-latest
-    if: ${{ vars.ENABLE_ANDROID_BUILDS == 'true' }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: chickensoft-games/setup-godot@v2
-        with:
-          version: ${{ env.GODOT_VERSION }}
-          use-dotnet: true
-          include-templates: true
-      - name: Decode release keystore
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          mkdir -p ~/.android
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > ~/.android/release.keystore
-      - name: Configure Godot Android export settings
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          EDITOR_SETTINGS_DIR=~/.config/godot
-          mkdir -p "$EDITOR_SETTINGS_DIR"
-          cat > "$EDITOR_SETTINGS_DIR/editor_settings-4.tres" <<EOFSET
-          [gd_resource type="EditorSettings"]
-          [resource]
-          export/android/android_sdk_path = "/usr/local/lib/android/sdk"
-          export/android/java_sdk_path = "$JAVA_HOME"
-          EOFSET
-
-          sed -i 's|keystore/release=""|keystore/release="'"$HOME/.android/release.keystore"'"|' \
-            game/export_presets.cfg
-          sed -i '/keystore\/release=/a keystore/release_user="'"$ANDROID_KEY_ALIAS"'"' \
-            game/export_presets.cfg
-          sed -i '/keystore\/release_user=/a keystore/release_password="'"$ANDROID_KEYSTORE_PASSWORD"'"' \
-            game/export_presets.cfg
-      - name: Build C# (export config)
-        run: dotnet build game/INISOnline.sln -c ExportRelease
-      - name: Export .apk
-        run: |
-          mkdir -p build/android
-          godot --headless --path game --export-release "Android" ../build/android/INISOnline.apk
-      - uses: actions/upload-artifact@v4
-        with:
-          name: inis-android
-          path: build/android/*
 
   # ---------------------------------------------------------------- GitHub Release
   release:
     name: Publish GitHub Release
-    needs: [server-image, desktop, apple, android]
+    needs: [server-image, linux-flatpak, windows-msi, macos-dmg]
     runs-on: ubuntu-latest
-    if: ${{ always() && needs.desktop.result != 'failure' && needs.server-image.result != 'failure' }}
+    if: ${{ always() }}
     steps:
       - uses: actions/download-artifact@v4
         with:

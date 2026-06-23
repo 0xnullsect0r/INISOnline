@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WiX v4/v5 installer definition for INIS Online (Windows).
+  Built in CI with: wix build packaging/windows/INISOnline.wxs -d ExportDir=<dir> -o INISOnline.msi
+  The Godot Windows export (INISOnline.exe + data_INISOnline_windows_* folder) is
+  staged into the directory passed as the ExportDir build variable.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="INIS Online"
+           Manufacturer="Ari Cummings"
+           Version="0.1.0.0"
+           UpgradeCode="6f3c9d2e-9b1a-4d77-9b6a-2e1f0c5a7b41"
+           Scope="perMachine">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of INIS Online is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="INIS Online" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="AppShortcutFolder" Name="INIS Online" />
+    </StandardDirectory>
+
+    <!-- Harvest the entire staged export directory. -->
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.ExportDir)\**" />
+    </ComponentGroup>
+
+    <!-- Start-menu shortcut to the main executable. -->
+    <Component Id="AppShortcut" Directory="AppShortcutFolder" Guid="*">
+      <Shortcut Id="StartMenuShortcut"
+                Name="INIS Online"
+                Target="[INSTALLFOLDER]INISOnline.exe"
+                WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="RemoveAppShortcutFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\AriCummings\INISOnline"
+                     Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Feature Id="Main" Title="INIS Online" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="AppShortcut" />
+    </Feature>
+  </Package>
+</Wix>

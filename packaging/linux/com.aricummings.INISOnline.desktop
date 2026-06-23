@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=INIS Online
+Comment=A digital adaptation of the Celtic area-control board game
+Exec=INISOnline.sh
+Icon=com.aricummings.INISOnline
+Terminal=false
+Categories=Game;BoardGame;

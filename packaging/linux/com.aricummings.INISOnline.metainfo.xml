@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.aricummings.INISOnline</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>INIS Online</name>
+  <summary>A digital adaptation of the Celtic area-control board game</summary>
+  <description>
+    <p>
+      INIS Online is a cross-platform, fan-made digital adaptation of the Celtic
+      card-drafting and area-control board game. Play online, over LAN, in local
+      hotseat, or against AI opponents. This project uses original artwork and
+      re-implemented rules text; it is not affiliated with or endorsed by the
+      original publisher.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.aricummings.INISOnline.desktop</launchable>
+  <categories>
+    <category>Game</category>
+    <category>BoardGame</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-06-23"/>
+  </releases>
+</component>
