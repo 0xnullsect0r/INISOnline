@@ -62,10 +62,13 @@ text (never the publisher's verbatim wording). Keep it that way.
 | 9 | Cross-platform export & packaging | **DONE** — `export_presets.cfg` (Win/macOS/Linux/Android/iOS) + committed `game/INISOnline.sln`; per-build `server_url`; headless Linux export boots & links the engine. Other targets need their SDKs/signing. |
 | 10 | *Seasons of Inis* expansion | **DONE (toggle)** — `GameOptions.SeasonsOfInis`: expansion action cards, exploration/druid replacements, 5th clan/seat, threaded through all modes. Season board (summer/winter), harbours & sea travel remain. |
 | 11 | 6–8 player extended mode | **DONE** — `GameOptions.Extended`: 8 clan colours, doubled action deck, seat cap 8; threaded through all modes (house-ruled, non-official) |
-| 12 | Release CI/CD (installers) | **NEXT** |
+| 12 | Release CI/CD (installers) | **DONE** — `.github/workflows/release.yml`: tag-driven exports (desktop now; Apple/Android gated on secrets) + server image to GHCR + GitHub Release |
 
-**Recommended next order:** **Phase 12** (release CI/CD) is the last. Phases 0–11
-are done. Client work needs a session that can run the Godot
+**All 12 phases are done.** The main remaining work is the deeper *Seasons of Inis*
+subsystems (season board summer/winter modifiers, harbours, sea travel — Phase 10
+extends), fleshing out the documented engine simplifications (some Triskel reactive
+windows / Advantage / Epic effects), real per-platform signing in the release
+workflow, and broader playtest polish. Client work needs a session that can run the Godot
 editor; Phase 5/AI/engine work only needs the .NET SDK + CI.
 
 ## 4. Repo layout & key files

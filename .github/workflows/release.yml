@@ -1,0 +1,155 @@
+name: Release
+
+# Tag-driven release pipeline: pushing a version tag (e.g. v0.1.0) builds the client for every
+# platform and the server image, then attaches the artifacts to a GitHub Release. The per-push
+# CI in ci.yml remains the build/test gate; this only runs on tags.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write   # create the GitHub Release
+  packages: write   # push the server image to GHCR
+
+env:
+  GODOT_VERSION: 4.4.0
+  DOTNET_VERSION: "10.0.x"
+
+jobs:
+  # ---------------------------------------------------------------- server image
+  server-image:
+    name: Server image → GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}/inisserver
+          TAG=${GITHUB_REF_NAME}
+          docker build -f INISServer/Dockerfile -t "$IMAGE:$TAG" -t "$IMAGE:latest" .
+          docker push "$IMAGE:$TAG"
+          docker push "$IMAGE:latest"
+
+  # ---------------------------------------------------------------- desktop exports
+  desktop:
+    name: Export ${{ matrix.preset }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - preset: "Linux"
+            out: INISOnline.x86_64
+            artifact: inis-linux
+          - preset: "Windows Desktop"
+            out: INISOnline.exe
+            artifact: inis-windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Setup Godot (.NET) + export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: true
+          include-templates: true
+      - name: Build C# (export config)
+        run: dotnet build game/INISOnline.sln -c ExportRelease
+      - name: Export
+        run: |
+          mkdir -p build/${{ matrix.artifact }}
+          godot --headless --path game --export-release "${{ matrix.preset }}" \
+            "../build/${{ matrix.artifact }}/${{ matrix.out }}"
+      - name: Package
+        run: cd build && zip -r "${{ matrix.artifact }}.zip" "${{ matrix.artifact }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/${{ matrix.artifact }}.zip
+
+  # ---------------------------------------------------------------- macOS + iOS
+  # Needs a macOS runner and Apple signing material; runs only when those secrets exist.
+  apple:
+    name: Export macOS & iOS
+    runs-on: macos-latest
+    if: ${{ vars.ENABLE_APPLE_BUILDS == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: true
+          include-templates: true
+      # Import the Apple signing certificate / provisioning profile from secrets here.
+      - name: Build C# (export config)
+        run: dotnet build game/INISOnline.sln -c ExportRelease
+      - name: Export macOS (.dmg) + iOS (.ipa)
+        env:
+          APPLE_CERT: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          mkdir -p build/macos build/ios
+          godot --headless --path game --export-release "macOS" ../build/macos/INISOnline.dmg
+          godot --headless --path game --export-release "iOS"   ../build/ios/INISOnline.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inis-apple
+          path: build/macos/*.dmg
+
+  # ---------------------------------------------------------------- Android
+  android:
+    name: Export Android
+    runs-on: ubuntu-latest
+    if: ${{ vars.ENABLE_ANDROID_BUILDS == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: true
+          include-templates: true
+      # Decode the release keystore from ${{ secrets.ANDROID_KEYSTORE_BASE64 }} and configure
+      # the editor's Android keystore/SDK settings before exporting.
+      - name: Build C# (export config)
+        run: dotnet build game/INISOnline.sln -c ExportRelease
+      - name: Export .apk
+        run: |
+          mkdir -p build/android
+          godot --headless --path game --export-release "Android" ../build/android/INISOnline.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inis-android
+          path: build/android/*.apk
+
+  # ---------------------------------------------------------------- GitHub Release
+  release:
+    name: Publish GitHub Release
+    needs: [server-image, desktop]
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/**/*

@@ -26,7 +26,7 @@ Early development. See the implementation plan and per-area docs in [`docs/`](do
 | Cross-platform export | 9 | **done** — export presets for 5 targets; Linux export boots (validated) |
 | *Seasons of Inis* expansion | 10 | **done** (toggle) — expansion cards + 5th clan/seat; season board/harbours/sea-travel later |
 | 6–8 player extended mode | 11 | **done** — house-ruled scaling (8 clans, doubled deck) |
-| Release CI/CD (installers) | 12 | later |
+| Release CI/CD (installers) | 12 | **done** — tag-driven `release.yml` (exports + server image → GHCR + GitHub Release) |
 
 ## Repository layout
 

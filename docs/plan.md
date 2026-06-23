@@ -84,7 +84,16 @@
   seat cap to 8, adds three more clan colours (Purple/Orange/Teal) and doubles the
   action deck so the larger draft has enough cards (house-ruled, non-official).
   Threaded through offline/hotseat, the server lobby and the LAN host.
-- **NEXT: Phase 12 (release CI/CD — tag-driven installers + server image).**
+- **Phase 12 (release CI/CD): DONE** — `.github/workflows/release.yml` triggers on
+  `v*` tags: builds the client exports (desktop unconditionally; macOS/iOS and
+  Android gated behind `ENABLE_APPLE_BUILDS` / `ENABLE_ANDROID_BUILDS` repo vars +
+  signing secrets), builds & pushes the `INISServer` image to GHCR, and publishes a
+  GitHub Release with the artifacts. `ci.yml` remains the per-push build/test gate.
+
+**All 12 phases complete.** Remaining work: the deeper *Seasons of Inis* subsystems
+(season board, harbours, sea travel), fleshing out the documented engine
+simplifications, real signing material for the mobile/desktop installers, and
+playtest polish.
 
 ## Environment notes
 - `.NET 10 SDK` and `Godot` are NOT preinstalled; install the SDK in a fresh

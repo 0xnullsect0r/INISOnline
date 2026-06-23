@@ -55,6 +55,15 @@ Mobile (.NET) export requires Godot 4.2+ and the `.NET mobile` workload
 (`dotnet workload install android` / the iOS workload on macOS).
 
 ## Release automation (Phase 12)
-See `.github/workflows/` — CI builds/tests on every push; a tagged release builds
-and publishes installers (`.dmg`, `.msi`, Flatpak, AppImage, `.ipa`, `.apk`) and the
-server image. Signing secrets are provided via repository/Action secrets.
+`.github/workflows/ci.yml` is the per-push build/test gate. `.github/workflows/release.yml`
+runs on `v*` tags and:
+- builds the **desktop** exports (Linux, Windows) via `chickensoft-games/setup-godot`
+  (it installs Godot .NET + export templates), zips them, and uploads them;
+- builds **macOS/iOS** (on a macOS runner) and **Android** only when the repo
+  variables `ENABLE_APPLE_BUILDS` / `ENABLE_ANDROID_BUILDS` are `true` and the
+  signing secrets (Apple cert/team, Android keystore) are configured;
+- builds and pushes the **`INISServer`** image to **GHCR**
+  (`ghcr.io/<owner>/<repo>/inisserver:<tag>` + `latest`);
+- creates a **GitHub Release** and attaches all artifacts.
+
+To cut a release: `git tag v0.1.0 && git push origin v0.1.0`.
