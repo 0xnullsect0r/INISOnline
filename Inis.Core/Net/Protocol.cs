@@ -28,6 +28,10 @@ public static class Protocol
     public const string PlayCard = "PlayCard";
     public const string TakePretender = "TakePretender";
     public const string DebugCommand = "DebugCommand";
+
+    /// <summary>LAN-only handshake: a peer announces its display name to claim a seat
+    /// (online play instead authenticates via JWT and maps the user to a lobby seat).</summary>
+    public const string Join = "Join";
 }
 
 /// <summary>

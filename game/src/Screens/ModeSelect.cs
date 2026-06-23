@@ -30,7 +30,7 @@ public partial class ModeSelect : Screen
             Nav.Show(new GameSetup(GameSetup.Mode.SinglePlayer))));
         column.AddChild(Mode("Local Hotseat", () =>
             Nav.Show(new GameSetup(GameSetup.Mode.Hotseat))));
-        column.AddChild(Mode("LAN", () => Nav.Toast("LAN multiplayer arrives in Phase 7.")));
+        column.AddChild(Mode("LAN", () => Nav.Show(new LanMenu())));
         column.AddChild(Mode("Online", () =>
             Nav.Show(INISOnline.Net.Session.LoggedIn ? new OnlineMenu() : new AuthScreen())));
 
