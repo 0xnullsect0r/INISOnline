@@ -1,0 +1,29 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "INISOnline", "INISOnline.csproj", "{FF478D2A-9A20-4C5F-80CB-975D1159D9DE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inis.Core", "..\Inis.Core\Inis.Core.csproj", "{CF42590F-DF79-4B98-B706-D20B4294233E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		ExportDebug|Any CPU = ExportDebug|Any CPU
+		ExportRelease|Any CPU = ExportRelease|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FF478D2A-9A20-4C5F-80CB-975D1159D9DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF478D2A-9A20-4C5F-80CB-975D1159D9DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF478D2A-9A20-4C5F-80CB-975D1159D9DE}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{FF478D2A-9A20-4C5F-80CB-975D1159D9DE}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{FF478D2A-9A20-4C5F-80CB-975D1159D9DE}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{FF478D2A-9A20-4C5F-80CB-975D1159D9DE}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+		{CF42590F-DF79-4B98-B706-D20B4294233E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF42590F-DF79-4B98-B706-D20B4294233E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF42590F-DF79-4B98-B706-D20B4294233E}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF42590F-DF79-4B98-B706-D20B4294233E}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{CF42590F-DF79-4B98-B706-D20B4294233E}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{CF42590F-DF79-4B98-B706-D20B4294233E}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

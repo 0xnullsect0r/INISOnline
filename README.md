@@ -23,7 +23,7 @@ Early development. See the implementation plan and per-area docs in [`docs/`](do
 | Online multiplayer (client) | 6 | **done** — auth/lobby UI + WebSocket game sync (validated E2E against a live server) |
 | LAN multiplayer | 7 | **done** — client-hosted session + UDP discovery (loopback-validated) |
 | Settings / audio / Debug screen | 8 | **done** — settings, original procedural audio, gated Debug/Cheat |
-| Cross-platform export | 9 | not started |
+| Cross-platform export | 9 | **done** — export presets for 5 targets; Linux export boots (validated) |
 | *Seasons of Inis* expansion | 10 | later |
 | 6–8 player extended mode | 11 | later |
 | Release CI/CD (installers) | 12 | later |

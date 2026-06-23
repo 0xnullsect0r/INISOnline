@@ -14,23 +14,45 @@ cd INISServer && docker compose up --build # Postgres + API on :80
 ```
 
 ## Client (Godot)
-Open `game/` in Godot 4.4 (.NET). First build restores the `Inis.Core` reference.
-Run the `Main` scene. Configure the server endpoint per build (export feature tag
-or a settings field).
+Open `game/` in Godot 4.4 (.NET). First build restores the `Inis.Core` reference and
+generates `game/INISOnline.sln` (committed). Run the `Main` scene.
+
+**Server endpoint per build.** The client reads `application/config/server_url` from
+the project settings (`Session.InitFromProject`), so each build can target a different
+backend. Override it for an export, e.g.:
+`godot --headless --export-release "Linux" out --custom-features ...` then edit the
+setting, or maintain per-target `project.godot` overrides. Default:
+`https://inis.aricummings.com`.
 
 ## Cross-platform export (Phase 9)
-Export presets live in `game/export_presets.cfg` (per platform). Targets:
+Export presets live in `game/export_presets.cfg` (one per platform). Install the
+Godot **export templates** (`4.4-stable` mono) and, for the matching host, the
+platform SDKs, then export from the editor or headless:
 
-| Platform | Output | Notes |
-|----------|--------|-------|
-| Windows | `.exe` | + later `.msi` (Phase 12) |
-| macOS | `.app` | + later `.dmg`, notarization |
-| Linux | binary | + later Flatpak / AppImage |
-| Android | `.apk`/`.aab` | .NET mobile export; keystore signing |
-| iOS | Xcode project → `.ipa` | .NET mobile export; Apple signing |
+```bash
+# .NET export REQUIRES the solution file game/INISOnline.sln (committed). Then:
+cd game
+godot --headless --export-release "Linux"   ../build/linux/INISOnline.x86_64
+godot --headless --export-release "Windows Desktop" ../build/windows/INISOnline.exe
+godot --headless --export-release "macOS"    ../build/macos/INISOnline.dmg   # on macOS
+godot --headless --export-release "Android"  ../build/android/INISOnline.apk # Android SDK + keystore
+godot --headless --export-release "iOS"      ../build/ios/INISOnline.ipa     # on macOS + Xcode
+```
 
-Mobile (.NET) export requires Godot 4.2+; ensure the iOS/Android export templates
-and the .NET mobile workload are installed.
+The .NET export emits the executable plus a `data_INISOnline_*` folder with the
+managed assemblies. **Validated:** the headless Linux export produces a standalone
+binary that boots and links the engine (`INIS engine linked. Cards: 69 …`).
+
+| Platform | Output | Host / signing |
+|----------|--------|----------------|
+| Linux | binary (+ `data_*`) | any; + later Flatpak / AppImage |
+| Windows | `.exe` | any; codesign + later `.msi` (Phase 12) |
+| macOS | `.dmg`/`.app` | macOS runner; codesign + notarization |
+| Android | `.apk`/`.aab` | Android SDK + keystore; `.NET mobile` workload |
+| iOS | `.ipa` (via Xcode) | macOS runner + Apple signing; `.NET mobile` workload |
+
+Mobile (.NET) export requires Godot 4.2+ and the `.NET mobile` workload
+(`dotnet workload install android` / the iOS workload on macOS).
 
 ## Release automation (Phase 12)
 See `.github/workflows/` — CI builds/tests on every push; a tagged release builds

@@ -59,13 +59,13 @@ text (never the publisher's verbatim wording). Keep it that way.
 | 6 | Online multiplayer in client | **DONE** — auth/lobby UI, WebSocket game sync, reconnection, spectator-ready; validated E2E vs a live server (Postgres + INISServer) |
 | 7 | LAN multiplayer | **DONE** — client-hosted authoritative session (same WS protocol) + UDP discovery; loopback-validated |
 | 8 | Settings, audio, polish, Debug screen | **DONE** — settings (persisted + live), original procedural audio (SFX + ambient), gated Debug/Cheat (works online via DebugCommand) |
-| 9 | Cross-platform export & packaging | not started |
+| 9 | Cross-platform export & packaging | **DONE** — `export_presets.cfg` (Win/macOS/Linux/Android/iOS) + committed `game/INISOnline.sln`; per-build `server_url`; headless Linux export boots & links the engine. Other targets need their SDKs/signing. |
 | 10 | *Seasons of Inis* expansion | later |
 | 11 | 6–8 player extended mode | later |
 | 12 | Release CI/CD (installers) | later |
 
-**Recommended next order:** **Phase 9** (cross-platform export) → 10 → 11 → 12.
-Phases 0–8 are done. Client work needs a session that can run the Godot
+**Recommended next order:** **Phase 10** (Seasons of Inis) → 11 → 12. Phases 0–9 are
+done. Client work needs a session that can run the Godot
 editor; Phase 5/AI/engine work only needs the .NET SDK + CI.
 
 ## 4. Repo layout & key files

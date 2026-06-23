@@ -69,7 +69,12 @@
   `tools/gen-audio.py`, a tabbed `SettingsPanel`, and the gated Debug/Cheat panel
   (code `INIS`) that grants cards / sets deeds via the server-authoritative
   `DebugCommand` path in every mode.
-- **NEXT: Phase 9 (cross-platform export & packaging).**
+- **Phase 9 (cross-platform export & packaging): DONE** — `game/export_presets.cfg`
+  for Windows/macOS/Linux/Android/iOS and a committed `game/INISOnline.sln` (the
+  .NET export requires it). Per-build server endpoint via `application/config/server_url`.
+  The headless Linux export produces a standalone binary that boots and links the
+  engine; other targets need their platform SDKs/signing. See docs/build.md.
+- **NEXT: Phase 10 (Seasons of Inis expansion).**
 
 ## Environment notes
 - `.NET 10 SDK` and `Godot` are NOT preinstalled; install the SDK in a fresh

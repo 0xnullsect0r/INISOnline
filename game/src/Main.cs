@@ -19,6 +19,7 @@ public partial class Main : Control
         var data = GameData.Default;
         GD.Print($"INIS engine linked. Cards: {data.Cards.Count}, Territories: {data.Territories.Count}");
 
+        Net.Session.InitFromProject(); // per-build server endpoint
         Theme = UiTheme.Build();
 
         var screens = new ScreenManager();

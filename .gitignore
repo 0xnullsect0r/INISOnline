@@ -19,6 +19,9 @@ game/builds/
 game/bin/
 game/obj/
 
+# ---- Export artifacts (produced by export presets; built in CI for releases) ----
+build/
+
 # ---- Assets pipeline output (generated PNG/atlases are regenerated from SVG) ----
 assets/export/
 
