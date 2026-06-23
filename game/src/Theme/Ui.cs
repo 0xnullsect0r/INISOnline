@@ -31,6 +31,7 @@ public static class Ui
     public static Button MenuButton(string text, float minWidth = 320f)
     {
         var b = new Button { Text = text, CustomMinimumSize = new Vector2(minWidth, 56) };
+        b.Pressed += () => INISOnline.Audio.AudioManager.Instance?.PlayUi();
         return b;
     }
 

@@ -1,6 +1,7 @@
 using System.Linq;
 using Godot;
 using INISOnline.App;
+using INISOnline.Audio;
 using INISOnline.Board;
 using INISOnline.Game;
 using INISOnline.Theme;
@@ -45,9 +46,16 @@ public partial class GameHud : Screen
         margin.AddChild(root);
 
         var top = new PanelContainer();
+        var topRow = new HBoxContainer();
+        topRow.AddThemeConstantOverride("separation", 12);
+        top.AddChild(topRow);
         _phaseLabel = Ui.Heading("Connecting…");
         _phaseLabel.HorizontalAlignment = HorizontalAlignment.Left;
-        top.AddChild(_phaseLabel);
+        _phaseLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        topRow.AddChild(_phaseLabel);
+        var gear = new Button { Text = "☰ Menu" };
+        gear.Pressed += OpenGearMenu;
+        topRow.AddChild(gear);
         root.AddChild(top);
 
         var middle = new HBoxContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
@@ -111,6 +119,11 @@ public partial class GameHud : Screen
         return panel;
     }
 
+    private void OpenGearMenu() => AddChild(new MenuOverlay("Menu",
+        ("Settings", () => AddChild(new SettingsPanel())),
+        ("Debug Code", () => AddChild(new DebugPanel(_source, Refresh))),
+        ("Leave Game", () => Nav.Show(new MainMenu()))));
+
     private void OnTerritoryPicked(string instanceId)
     {
         if (!_source.CanLocalAct) return;
@@ -118,6 +131,9 @@ public partial class GameHud : Screen
         _board.SetSelected(_selectedTerritory);
         RefreshActions();
     }
+
+    private bool _wasGameOver;
+    private bool _wasMyTurn;
 
     private void Refresh()
     {
@@ -127,6 +143,16 @@ public partial class GameHud : Screen
         RefreshBanners();
         RefreshLog();
         RefreshActions();
+        PlayCues();
+    }
+
+    private void PlayCues()
+    {
+        var audio = AudioManager.Instance;
+        if (_source.IsGameOver && !_wasGameOver) audio?.PlaySfx("victory");
+        else if (_source.CanLocalAct && !_wasMyTurn) audio?.PlaySfx("chime");
+        _wasGameOver = _source.IsGameOver;
+        _wasMyTurn = _source.CanLocalAct;
     }
 
     private void RefreshPhase()

@@ -83,6 +83,14 @@ public abstract class WsGameSourceBase : IGameSource
         _legal = Array.Empty<Move>(); // wait for the host's authoritative response
     }
 
+    public void Debug(string command, string? cardId, int amount) =>
+        SendRaw(JsonSerializer.Serialize(new
+        {
+            v = Protocol.Version,
+            type = Protocol.DebugCommand,
+            payload = new { command, cardId, amount },
+        }, InisJson.Options));
+
     public bool Poll(double delta)
     {
         PumpTransport();

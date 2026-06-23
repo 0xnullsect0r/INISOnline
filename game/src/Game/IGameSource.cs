@@ -36,6 +36,9 @@ public interface IGameSource
     /// <summary>Submit a chosen move (applies locally, or sends an intent to the server).</summary>
     void Submit(Move move);
 
+    /// <summary>Issue a server-authoritative debug/cheat command (grant/set_deeds/…); works online.</summary>
+    void Debug(string command, string? cardId, int amount);
+
     /// <summary>Advance the source by <paramref name="delta"/> seconds; returns true if state changed.</summary>
     bool Poll(double delta);
 }

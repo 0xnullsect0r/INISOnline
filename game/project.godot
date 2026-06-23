@@ -19,6 +19,10 @@ project/assembly_name="INISOnline"
 
 buses/default_bus_layout="res://audio/default_bus_layout.tres"
 
+[autoload]
+
+AudioManager="*res://src/Audio/AudioManager.cs"
+
 [display]
 
 window/size/viewport_width=1280

@@ -56,6 +56,16 @@ public sealed class LanHostGame : IGameSource
 
     public void Submit(Move move) => _host.HostApply(move);
 
+    public void Debug(string command, string? cardId, int amount)
+    {
+        if (_host.LocalHostPlayerId is null) return;
+        _host.HostDebug(new Move
+        {
+            Type = MoveType.Debug, PlayerId = _host.LocalHostPlayerId,
+            DebugCommand = command, CardId = cardId, Amount = amount,
+        });
+    }
+
     public bool Poll(double delta)
     {
         if (!_host.Started || _host.Version == _seenVersion) return false;

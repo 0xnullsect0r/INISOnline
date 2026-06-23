@@ -46,6 +46,13 @@ public partial class SmokeTest : Node
         board.Sync(boardGame.State);
         GD.Print($"SMOKE board: tiles synced for {boardGame.State.Territories.Count} territories");
 
+        // 4) Settings + debug path + overlays instantiate without error.
+        var dbgGame = new LocalGame(3, seats);
+        dbgGame.Debug("set_deeds", null, 5);
+        AddChild(new Screens.SettingsPanel());
+        AddChild(new Screens.DebugPanel(dbgGame, () => { }));
+        GD.Print($"SMOKE debug+settings: audio={(INISOnline.Audio.AudioManager.Instance is not null)} overlays ok");
+
         var timer = GetTree().CreateTimer(1.5);
         timer.Timeout += () =>
         {

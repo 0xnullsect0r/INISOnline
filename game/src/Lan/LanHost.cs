@@ -213,6 +213,8 @@ public partial class LanHost : Node
         ApplyAndAdvance(move);
     }
 
+    public void HostDebug(Move move) => ApplyEvents(DebugCommandApi.Apply(_engine!, move));
+
     private void TryApply(Conn conn, Move move)
     {
         try { ApplyAndAdvance(move); }

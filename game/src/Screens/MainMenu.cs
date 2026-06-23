@@ -1,5 +1,6 @@
 using Godot;
 using INISOnline.App;
+using INISOnline.Audio;
 using INISOnline.Theme;
 
 namespace INISOnline.Screens;
@@ -9,6 +10,7 @@ public partial class MainMenu : Screen
 {
     public override void _Ready()
     {
+        AudioManager.Instance?.PlayMusic("menu_ambient");
         AddChild(Ui.Background());
 
         var column = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
@@ -45,7 +47,7 @@ public partial class MainMenu : Screen
     private Button SettingsButton()
     {
         var b = Ui.MenuButton("Settings");
-        b.Pressed += () => Nav.Toast("Settings arrive in Phase 8.");
+        b.Pressed += () => AddChild(new SettingsPanel());
         return b;
     }
 

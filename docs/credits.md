@@ -8,16 +8,20 @@ not affiliated with or endorsed by Matagot.
 ## Art
 All in-game art is original (SVG-authored) for this project unless listed below.
 
-## Music (royalty-free — to be finalized in Phase 8)
-Candidate sources (CC0 / CC-BY — record exact track + license + author here when
-selected): incompetech.com (Kevin MacLeod), FreePD, Pixabay Music, OpenGameArt.
+## Audio (original — Phase 8)
+All audio is **procedurally synthesized from scratch** by `tools/gen-audio.py`, so it
+is fully original to this project and free of third-party licensing. Regenerate with
+`python3 tools/gen-audio.py`.
 
-| Track | Source | Author | License | Used for |
-|-------|--------|--------|---------|----------|
-| _tbd_ | | | | menu |
-| _tbd_ | | | | in-game |
+| Asset | File | Used for |
+|-------|------|----------|
+| Ambient pad (looping) | `game/audio/music/menu_ambient.wav` | menu + in-game music |
+| Click | `game/audio/sfx/click.wav` | UI button press |
+| Draw | `game/audio/sfx/draw.wav` | card draw |
+| Place | `game/audio/sfx/place.wav` | clan / building placed |
+| Chime | `game/audio/sfx/chime.wav` | your-turn cue |
+| Victory | `game/audio/sfx/victory.wav` | game won |
+| Error | `game/audio/sfx/error.wav` | illegal action |
 
-## Sound effects (Phase 8)
-| SFX | Source | License |
-|-----|--------|---------|
-| _tbd_ | | |
+A future pass may swap in curated CC0/CC-BY tracks (incompetech / FreePD / Pixabay /
+OpenGameArt); record exact track + author + license here if so.

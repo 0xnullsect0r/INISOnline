@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Inis.Core.Ai;
 using Inis.Core.Data;
+using Inis.Core.Debug;
 using Inis.Core.Model;
 using Inis.Core.Moves;
 using Inis.Core.Rules;
@@ -57,6 +58,14 @@ public sealed class LocalGame : IGameSource
     public string Describe(Move move) => MoveText.Describe(move, SeatName, _data);
 
     public void Submit(Move move) => Record(_engine.Apply(move));
+
+    public void Debug(string command, string? cardId, int amount)
+    {
+        var pid = Pending?.PlayerId;
+        if (pid is null) return;
+        var move = new Move { Type = MoveType.Debug, PlayerId = pid, DebugCommand = command, CardId = cardId, Amount = amount };
+        Record(DebugCommandApi.Apply(_engine, move));
+    }
 
     /// <summary>Paces AI seats: steps one AI move per <see cref="AiStepSeconds"/>.</summary>
     public bool Poll(double delta)
