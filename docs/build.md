@@ -66,4 +66,22 @@ runs on `v*` tags and:
   (`ghcr.io/<owner>/<repo>/inisserver:<tag>` + `latest`);
 - creates a **GitHub Release** and attaches all artifacts.
 
+### Required secrets for mobile/macOS signing
+
+| Secret | Purpose |
+|--------|---------|
+| `ANDROID_KEYSTORE_BASE64` | Base64-encoded release `.keystore` |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | Key alias inside the keystore |
+| `ANDROID_KEY_PASSWORD` | Key password |
+| `APPLE_CERT_P12` | Base64-encoded `.p12` distribution certificate |
+| `APPLE_CERT_PASSWORD` | Password for the `.p12` |
+| `APPLE_TEAM_ID` | 10-character Apple Team ID |
+| `APPLE_PROVISIONING_PROFILE` | Base64-encoded `.mobileprovision` |
+| `APPLE_ID` | Apple ID email (notarization, optional) |
+| `APPLE_APP_PASSWORD` | App-specific password (notarization, optional) |
+
+Set repo **variables** `ENABLE_APPLE_BUILDS`, `ENABLE_ANDROID_BUILDS`, and
+optionally `ENABLE_NOTARIZATION` to `true` to enable those jobs.
+
 To cut a release: `git tag v0.1.0 && git push origin v0.1.0`.

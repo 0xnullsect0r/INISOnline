@@ -90,21 +90,69 @@ jobs:
           version: ${{ env.GODOT_VERSION }}
           use-dotnet: true
           include-templates: true
-      # Import the Apple signing certificate / provisioning profile from secrets here.
+      - name: Install Apple certificate and provisioning profile
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+        run: |
+          CERT_PATH=$RUNNER_TEMP/certificate.p12
+          PP_PATH=$RUNNER_TEMP/profile.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 16)
+
+          echo "$APPLE_CERT_P12" | base64 --decode > "$CERT_PATH"
+          echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode > "$PP_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$APPLE_CERT_PASSWORD" -A -t cert -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" \
+            "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
       - name: Build C# (export config)
         run: dotnet build game/INISOnline.sln -c ExportRelease
-      - name: Export macOS (.dmg) + iOS (.ipa)
+      - name: Export macOS (.dmg)
         env:
-          APPLE_CERT: ${{ secrets.APPLE_CERT_P12 }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          mkdir -p build/macos build/ios
+          mkdir -p build/macos
           godot --headless --path game --export-release "macOS" ../build/macos/INISOnline.dmg
-          godot --headless --path game --export-release "iOS"   ../build/ios/INISOnline.ipa
+      - name: Export iOS (.ipa)
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          mkdir -p build/ios
+          godot --headless --path game --export-release "iOS" ../build/ios/INISOnline.ipa
+      - name: Notarize macOS build
+        if: ${{ vars.ENABLE_NOTARIZATION == 'true' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun notarytool submit build/macos/INISOnline.dmg \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple build/macos/INISOnline.dmg
+      - name: Clean up keychain
+        if: ${{ always() }}
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
       - uses: actions/upload-artifact@v4
         with:
-          name: inis-apple
+          name: inis-macos
           path: build/macos/*.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inis-ios
+          path: build/ios/*.ipa
 
   # ---------------------------------------------------------------- Android
   android:
@@ -125,8 +173,33 @@ jobs:
           version: ${{ env.GODOT_VERSION }}
           use-dotnet: true
           include-templates: true
-      # Decode the release keystore from ${{ secrets.ANDROID_KEYSTORE_BASE64 }} and configure
-      # the editor's Android keystore/SDK settings before exporting.
+      - name: Decode release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p ~/.android
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > ~/.android/release.keystore
+      - name: Configure Godot Android export settings
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          EDITOR_SETTINGS_DIR=~/.config/godot
+          mkdir -p "$EDITOR_SETTINGS_DIR"
+          cat > "$EDITOR_SETTINGS_DIR/editor_settings-4.tres" <<EOFSET
+          [gd_resource type="EditorSettings"]
+          [resource]
+          export/android/android_sdk_path = "/usr/local/lib/android/sdk"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOFSET
+
+          sed -i 's|keystore/release=""|keystore/release="'"$HOME/.android/release.keystore"'"|' \
+            game/export_presets.cfg
+          sed -i '/keystore\/release=/a keystore/release_user="'"$ANDROID_KEY_ALIAS"'"' \
+            game/export_presets.cfg
+          sed -i '/keystore\/release_user=/a keystore/release_password="'"$ANDROID_KEYSTORE_PASSWORD"'"' \
+            game/export_presets.cfg
       - name: Build C# (export config)
         run: dotnet build game/INISOnline.sln -c ExportRelease
       - name: Export .apk
@@ -136,14 +209,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: inis-android
-          path: build/android/*.apk
+          path: build/android/*
 
   # ---------------------------------------------------------------- GitHub Release
   release:
     name: Publish GitHub Release
-    needs: [server-image, desktop]
+    needs: [server-image, desktop, apple, android]
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: ${{ always() && needs.desktop.result != 'failure' && needs.server-image.result != 'failure' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
