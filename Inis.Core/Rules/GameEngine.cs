@@ -204,11 +204,12 @@ public sealed class GameEngine
             .Where(c => c.Expansion is not null && c.ResolvedEffectId != c.Id)
             .Select(c => c.ResolvedEffectId).ToHashSet();
 
+        var copies = State.Options.DeckCopies;
         var deck = new List<string>();
         foreach (var c in Data.Cards.Where(c => c.Type == CardType.Action))
         {
             if (!IncludeAction(c, n, seasons, replacedBaseIds)) continue;
-            for (var i = 0; i < c.Count; i++) deck.Add(c.Id);
+            for (var i = 0; i < c.Count * copies; i++) deck.Add(c.Id);
         }
         _rng.Shuffle(deck);
         State.SetAsideActionCard = deck[0];

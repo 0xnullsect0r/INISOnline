@@ -74,7 +74,17 @@
   .NET export requires it). Per-build server endpoint via `application/config/server_url`.
   The headless Linux export produces a standalone binary that boots and links the
   engine; other targets need their platform SDKs/signing. See docs/build.md.
-- **NEXT: Phase 10 (Seasons of Inis expansion).**
+- **Phase 10 (Seasons of Inis): DONE (toggle).** `GameOptions.SeasonsOfInis` selects
+  the content set at `GameEngine.Create` (persisted on `GameState`): base = 2–4 + 17
+  action cards; Seasons = 2–5 (5th clan) + the expansion action cards, with the
+  updated exploration/druid variants replacing the base ones. Threaded through
+  offline/hotseat, the server lobby, and the LAN host. The season board (summer/
+  winter modifiers), harbours and sea travel remain a later slice.
+- **Phase 11 (6–8 player extended mode): DONE** — `GameOptions.Extended` raises the
+  seat cap to 8, adds three more clan colours (Purple/Orange/Teal) and doubles the
+  action deck so the larger draft has enough cards (house-ruled, non-official).
+  Threaded through offline/hotseat, the server lobby and the LAN host.
+- **NEXT: Phase 12 (release CI/CD — tag-driven installers + server image).**
 
 ## Environment notes
 - `.NET 10 SDK` and `Godot` are NOT preinstalled; install the SDK in a fresh

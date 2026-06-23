@@ -24,8 +24,8 @@ Early development. See the implementation plan and per-area docs in [`docs/`](do
 | LAN multiplayer | 7 | **done** — client-hosted session + UDP discovery (loopback-validated) |
 | Settings / audio / Debug screen | 8 | **done** — settings, original procedural audio, gated Debug/Cheat |
 | Cross-platform export | 9 | **done** — export presets for 5 targets; Linux export boots (validated) |
-| *Seasons of Inis* expansion | 10 | later |
-| 6–8 player extended mode | 11 | later |
+| *Seasons of Inis* expansion | 10 | **done** (toggle) — expansion cards + 5th clan/seat; season board/harbours/sea-travel later |
+| 6–8 player extended mode | 11 | **done** — house-ruled scaling (8 clans, doubled deck) |
 | Release CI/CD (installers) | 12 | later |
 
 ## Repository layout

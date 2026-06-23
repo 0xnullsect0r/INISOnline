@@ -7,8 +7,12 @@ public enum ClanColor
     Blue,
     Green,
     Yellow,
-    // Reserved for the Seasons of Inis expansion (Phase 10).
+    // 5th clan: Seasons of Inis expansion (Phase 10).
     White,
+    // Extra factions for the house-ruled 6–8 player extended mode (Phase 11).
+    Purple,
+    Orange,
+    Teal,
 }
 
 /// <summary>Top-level card categories.</summary>

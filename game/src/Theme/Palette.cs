@@ -39,6 +39,9 @@ public static class Palette
         ClanColor.Green => Color.FromHtml("3E7D4F"),
         ClanColor.Yellow => Color.FromHtml("C9A227"),
         ClanColor.White => Color.FromHtml("E8E4D8"),
+        ClanColor.Purple => Color.FromHtml("7E4B8E"),
+        ClanColor.Orange => Color.FromHtml("CC6B2C"),
+        ClanColor.Teal => Color.FromHtml("2E8B8B"),
         _ => Cream,
     };
 }

@@ -21,11 +21,12 @@ public partial class LanHostScreen : Screen
 
     private int _count = 3;
     private bool _seasons;
+    private bool _extended;
     private VBoxContainer _column = null!;
     private Label _info = null!;
     private VBoxContainer _seatList = null!;
 
-    private int MaxPlayers => _seasons ? 5 : 4;
+    private int MaxPlayers => _extended ? 8 : _seasons ? 5 : 4;
 
     public override void _Ready()
     {
@@ -60,6 +61,10 @@ public partial class LanHostScreen : Screen
         seasons.Toggled += on => { _seasons = on; SetCount(_count); };
         _column.AddChild(seasons);
 
+        var extended = new CheckButton { Text = "Extended 6–8 players (house-ruled)", ButtonPressed = _extended };
+        extended.Toggled += on => { _extended = on; SetCount(_count); };
+        _column.AddChild(extended);
+
         var open = Ui.MenuButton("Open Lobby");
         open.Pressed += OpenLobby;
         _column.AddChild(open);
@@ -78,7 +83,7 @@ public partial class LanHostScreen : Screen
     private void OpenLobby()
     {
         _host = new LanHost();
-        if (!_host.Open(_count, _seasons)) { BuildError("Could not open a network port."); return; }
+        if (!_host.Open(_count, _seasons, _extended)) { BuildError("Could not open a network port."); return; }
         Nav.AddChild(_host);              // persist the host across the screen change to the game
         _host.ClaimLocalSeat(_hostName);
         _announcer = new LanDiscovery.Announcer();

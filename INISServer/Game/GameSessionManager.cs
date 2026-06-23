@@ -17,7 +17,10 @@ namespace InisServer.Game;
 public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFactory loggers)
 {
     private static readonly ClanColor[] SeatColors =
-        { ClanColor.Red, ClanColor.Blue, ClanColor.Green, ClanColor.Yellow, ClanColor.White };
+    {
+        ClanColor.Red, ClanColor.Blue, ClanColor.Green, ClanColor.Yellow,
+        ClanColor.White, ClanColor.Purple, ClanColor.Orange, ClanColor.Teal,
+    };
 
     private readonly ConcurrentDictionary<Guid, Lobby> _lobbies = new();
     private readonly ConcurrentDictionary<string, Guid> _codeToLobby = new(StringComparer.OrdinalIgnoreCase);
@@ -26,14 +29,16 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
 
     // --------------------------------------------------------------------- lobbies
 
-    public Lobby CreateLobby(Guid hostUserId, string hostUsername, int capacity, bool seasons = false)
+    public Lobby CreateLobby(Guid hostUserId, string hostUsername, int capacity, bool seasons = false, bool extended = false)
     {
-        var max = seasons ? 5 : 4;
+        var max = extended ? 8 : seasons ? 5 : 4;
         if (capacity < 2 || capacity > max)
-            throw new ArgumentOutOfRangeException(nameof(capacity),
-                $"{(seasons ? "Seasons" : "Base")} lobbies seat 2–{max} players.");
+            throw new ArgumentOutOfRangeException(nameof(capacity), $"Lobbies seat 2–{max} players in this mode.");
 
-        var lobby = new Lobby { InviteCode = NewInviteCode(), HostUserId = hostUserId, Seasons = seasons };
+        var lobby = new Lobby
+        {
+            InviteCode = NewInviteCode(), HostUserId = hostUserId, Seasons = seasons, Extended = extended,
+        };
         for (var i = 0; i < capacity; i++) lobby.Seats.Add(new LobbySeat { Index = i });
         lobby.Seats[0].UserId = hostUserId;
         lobby.Seats[0].Username = hostUsername;
@@ -137,7 +142,7 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
             if (lobby.HostUserId != hostUserId) throw new InvalidOperationException("Only the host can start.");
             if (lobby.Started) throw new InvalidOperationException("Game already started.");
 
-            var max = lobby.Seasons ? 5 : 4;
+            var max = lobby.MaxSeats;
             var active = lobby.Seats.Where(s => s.UserId is not null || s.IsAi).OrderBy(s => s.Index).ToList();
             if (active.Count < 2 || active.Count > max) throw new InvalidOperationException($"Need 2–{max} filled seats.");
             if (lobby.Seats.Any(s => s.IsOpen)) throw new InvalidOperationException("Fill or remove empty seats first.");
@@ -158,7 +163,7 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
         var gameId = Guid.NewGuid();
         var engine = GameEngine.Create(gameId.ToString(), seed,
             seatInfos.Select(s => new SeatConfig(s.PlayerId, s.DisplayName, s.Color, s.IsAi)).ToList(),
-            options: new GameOptions(lobby.Seasons));
+            options: new GameOptions(lobby.Seasons, lobby.Extended));
 
         using (var scope = _scopes())
         {

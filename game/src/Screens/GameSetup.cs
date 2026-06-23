@@ -18,16 +18,20 @@ public partial class GameSetup : Screen
     public enum Mode { SinglePlayer, Hotseat }
 
     private static readonly ClanColor[] Colors =
-        { ClanColor.Red, ClanColor.Blue, ClanColor.Green, ClanColor.Yellow, ClanColor.White };
+    {
+        ClanColor.Red, ClanColor.Blue, ClanColor.Green, ClanColor.Yellow,
+        ClanColor.White, ClanColor.Purple, ClanColor.Orange, ClanColor.Teal,
+    };
 
     private readonly Mode _mode;
     private int _count = 4;
     private bool _seasons;
+    private bool _extended;
     private Label _countLabel = null!;
 
     public GameSetup(Mode mode) => _mode = mode;
 
-    private int MaxPlayers => _seasons ? 5 : 4;
+    private int MaxPlayers => _extended ? 8 : _seasons ? 5 : 4;
 
     public override void _Ready()
     {
@@ -65,6 +69,14 @@ public partial class GameSetup : Screen
         };
         column.AddChild(seasons);
 
+        var extended = new CheckButton { Text = "Extended 6–8 players (house-ruled)", ButtonPressed = _extended };
+        extended.Toggled += on =>
+        {
+            _extended = on;
+            SetCount(_count);
+        };
+        column.AddChild(extended);
+
         column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 12) });
         var start = Ui.MenuButton("Start Game");
         start.Pressed += Start;
@@ -92,6 +104,6 @@ public partial class GameSetup : Screen
         }
 
         var seed = (int)(Time.GetUnixTimeFromSystem() % int.MaxValue);
-        Nav.Show(new GameHud(new LocalGame(seed, seats, new GameOptions(_seasons))));
+        Nav.Show(new GameHud(new LocalGame(seed, seats, new GameOptions(_seasons, _extended))));
     }
 }

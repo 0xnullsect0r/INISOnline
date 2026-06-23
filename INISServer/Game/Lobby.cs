@@ -26,6 +26,12 @@ public sealed class Lobby
     /// <summary>True if this game uses the Seasons of Inis expansion (enables a 5th seat).</summary>
     public bool Seasons { get; init; }
 
+    /// <summary>True for the house-ruled 6–8 player extended mode.</summary>
+    public bool Extended { get; init; }
+
+    /// <summary>Max seats given the chosen mode.</summary>
+    public int MaxSeats => Extended ? 8 : Seasons ? 5 : 4;
+
     public List<LobbySeat> Seats { get; } = new();
 
     /// <summary>Users explicitly invited (friend invites) — informational; codes still let anyone join.</summary>

@@ -23,7 +23,10 @@ namespace INISOnline.Lan;
 public partial class LanHost : Node
 {
     private static readonly ClanColor[] SeatColors =
-        { ClanColor.Red, ClanColor.Blue, ClanColor.Green, ClanColor.Yellow, ClanColor.White };
+    {
+        ClanColor.Red, ClanColor.Blue, ClanColor.Green, ClanColor.Yellow,
+        ClanColor.White, ClanColor.Purple, ClanColor.Orange, ClanColor.Teal,
+    };
 
     private sealed class Seat
     {
@@ -55,6 +58,7 @@ public partial class LanHost : Node
     public int Port { get; private set; }
     public bool Started { get; private set; }
     public bool Seasons { get; private set; }
+    public bool Extended { get; private set; }
 
     /// <summary>Bumped on every state change so in-process views (the host) can refresh.</summary>
     public int Version { get; private set; }
@@ -63,10 +67,11 @@ public partial class LanHost : Node
     public string? LocalHostPlayerId { get; private set; }
 
     /// <summary>Starts the host on an OS-assigned port. Returns false if the socket fails.</summary>
-    public bool Open(int capacity, bool seasons = false)
+    public bool Open(int capacity, bool seasons = false, bool extended = false)
     {
         Seasons = seasons;
-        Capacity = Mathf.Clamp(capacity, 2, seasons ? 5 : 4);
+        Extended = extended;
+        Capacity = Mathf.Clamp(capacity, 2, extended ? 8 : seasons ? 5 : 4);
         _seats = Enumerable.Range(0, Capacity).Select(i => new Seat { Index = i }).ToArray();
 
         var err = _server.Listen(0); // 0 → any free port
@@ -198,7 +203,7 @@ public partial class LanHost : Node
         }
 
         var seed = (int)(Time.GetUnixTimeFromSystem() % int.MaxValue);
-        _engine = GameEngine.Create("lan", seed, configs, options: new GameOptions(Seasons));
+        _engine = GameEngine.Create("lan", seed, configs, options: new GameOptions(Seasons, Extended));
         Started = true;
         DriveAi();
         BroadcastAll(System.Array.Empty<GameEvent>());

@@ -60,12 +60,12 @@ text (never the publisher's verbatim wording). Keep it that way.
 | 7 | LAN multiplayer | **DONE** — client-hosted authoritative session (same WS protocol) + UDP discovery; loopback-validated |
 | 8 | Settings, audio, polish, Debug screen | **DONE** — settings (persisted + live), original procedural audio (SFX + ambient), gated Debug/Cheat (works online via DebugCommand) |
 | 9 | Cross-platform export & packaging | **DONE** — `export_presets.cfg` (Win/macOS/Linux/Android/iOS) + committed `game/INISOnline.sln`; per-build `server_url`; headless Linux export boots & links the engine. Other targets need their SDKs/signing. |
-| 10 | *Seasons of Inis* expansion | later |
-| 11 | 6–8 player extended mode | later |
-| 12 | Release CI/CD (installers) | later |
+| 10 | *Seasons of Inis* expansion | **DONE (toggle)** — `GameOptions.SeasonsOfInis`: expansion action cards, exploration/druid replacements, 5th clan/seat, threaded through all modes. Season board (summer/winter), harbours & sea travel remain. |
+| 11 | 6–8 player extended mode | **DONE** — `GameOptions.Extended`: 8 clan colours, doubled action deck, seat cap 8; threaded through all modes (house-ruled, non-official) |
+| 12 | Release CI/CD (installers) | **NEXT** |
 
-**Recommended next order:** **Phase 10** (Seasons of Inis) → 11 → 12. Phases 0–9 are
-done. Client work needs a session that can run the Godot
+**Recommended next order:** **Phase 12** (release CI/CD) is the last. Phases 0–11
+are done. Client work needs a session that can run the Godot
 editor; Phase 5/AI/engine work only needs the .NET SDK + CI.
 
 ## 4. Repo layout & key files
