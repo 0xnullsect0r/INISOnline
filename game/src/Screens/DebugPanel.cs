@@ -64,7 +64,7 @@ public partial class DebugPanel : Overlay
         var cards = _data.Cards
             .Where(c => c.Type is CardType.Action or CardType.EpicTale)
             .OrderBy(c => c.Type).ThenBy(c => c.Name).ToList();
-        var picker = new OptionButton { CustomMinimumSize = new Vector2(380, 0) };
+        var picker = new OptionButton { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         foreach (var c in cards) picker.AddItem($"{(c.Type == CardType.EpicTale ? "Epic" : "Action")}: {c.Name}");
 
         Body.AddChild(Ui.Body("Grant a card to the current player", Palette.Gold));
@@ -79,7 +79,7 @@ public partial class DebugPanel : Overlay
 
         // Set deeds.
         Body.AddChild(Ui.Body("Set deeds (wild victory tokens)", Palette.Gold));
-        var deeds = new HSlider { MinValue = 0, MaxValue = 6, Step = 1, Value = 0, CustomMinimumSize = new Vector2(380, 0) };
+        var deeds = new HSlider { MinValue = 0, MaxValue = 6, Step = 1, Value = 0, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         Body.AddChild(deeds);
         var setDeeds = Ui.MenuButton("Set deeds");
         setDeeds.Pressed += () => { _source.Debug("set_deeds", null, (int)deeds.Value); _onChanged(); };

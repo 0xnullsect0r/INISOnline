@@ -13,7 +13,11 @@ public partial class SettingsPanel : Overlay
     {
         Body.AddChild(Ui.Heading("Settings"));
 
-        var tabs = new TabContainer { CustomMinimumSize = new Vector2(440, 280) };
+        var tabs = new TabContainer
+        {
+            CustomMinimumSize = new Vector2(400, 260),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
         Body.AddChild(tabs);
 
         tabs.AddChild(AudioTab());

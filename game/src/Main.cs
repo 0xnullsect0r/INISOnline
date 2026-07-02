@@ -20,6 +20,7 @@ public partial class Main : Control
         GD.Print($"INIS engine linked. Cards: {data.Cards.Count}, Territories: {data.Territories.Count}");
 
         Net.Session.InitFromProject(); // per-build server endpoint
+        Audio.Settings.Load();
         Theme = UiTheme.Build();
 
         var screens = new ScreenManager();

@@ -37,7 +37,8 @@ public partial class ScreenManager : Control
         var panel = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore };
         panel.AddChild(new Label { Text = message });
         panel.SetAnchorsPreset(LayoutPreset.CenterBottom);
-        panel.Position = new Vector2(panel.Position.X, -120);
+        panel.OffsetTop = -100;
+        panel.OffsetBottom = -60;
         AddChild(panel);
 
         var tween = CreateTween();

@@ -41,7 +41,7 @@ public partial class GameHud : Screen
             margin.AddThemeConstantOverride($"margin_{side}", 24);
         AddChild(margin);
 
-        var root = new VBoxContainer();
+        var root = new VBoxContainer { ClipContents = true };
         root.AddThemeConstantOverride("separation", 12);
         margin.AddChild(root);
 
@@ -66,10 +66,17 @@ public partial class GameHud : Screen
         middle.AddChild(BuildBoardPanel());
         middle.AddChild(BuildLogPanel());
 
-        var actionPanel = new PanelContainer();
-        _actions = new VBoxContainer();
+        var actionPanel = new PanelContainer { CustomMinimumSize = new Vector2(0, 80) };
+        actionPanel.ClipContents = true;
+        var actionScroll = new ScrollContainer
+        {
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            CustomMinimumSize = new Vector2(0, 60),
+        };
+        _actions = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _actions.AddThemeConstantOverride("separation", 8);
-        actionPanel.AddChild(_actions);
+        actionScroll.AddChild(_actions);
+        actionPanel.AddChild(actionScroll);
         root.AddChild(actionPanel);
 
         if (_source.Ready) Refresh();
@@ -84,13 +91,21 @@ public partial class GameHud : Screen
     private PanelContainer BuildBannerPanel()
     {
         var panel = new PanelContainer { CustomMinimumSize = new Vector2(280, 0) };
+        panel.ClipContents = true;
         var col = new VBoxContainer();
         col.AddThemeConstantOverride("separation", 10);
         panel.AddChild(col);
         col.AddChild(Ui.Body("Players", Palette.Gold));
-        _banners = new VBoxContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
+        var scroll = new ScrollContainer
+        {
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+        };
+        _banners = new VBoxContainer();
         _banners.AddThemeConstantOverride("separation", 10);
-        col.AddChild(_banners);
+        _banners.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        scroll.AddChild(_banners);
+        col.AddChild(scroll);
         return panel;
     }
 
@@ -106,13 +121,22 @@ public partial class GameHud : Screen
     private PanelContainer BuildLogPanel()
     {
         var panel = new PanelContainer { CustomMinimumSize = new Vector2(320, 0) };
+        panel.ClipContents = true;
         var col = new VBoxContainer();
         col.AddThemeConstantOverride("separation", 8);
         panel.AddChild(col);
         col.AddChild(Ui.Body("Action Log", Palette.Gold));
 
-        _logScroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
-        _logLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _logScroll = new ScrollContainer
+        {
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+        };
+        _logLabel = new Label
+        {
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
         _logLabel.AddThemeColorOverride("font_color", Palette.Cream);
         _logScroll.AddChild(_logLabel);
         col.AddChild(_logScroll);

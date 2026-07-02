@@ -63,11 +63,13 @@ public static class Ui
         fill.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         root.AddChild(fill);
 
+        var glowMargin = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        glowMargin.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        foreach (var side in new[] { "left", "right", "top", "bottom" })
+            glowMargin.AddThemeConstantOverride($"margin_{side}", 120);
         var glow = new ColorRect { Color = Palette.SlateLight, MouseFilter = Control.MouseFilterEnum.Ignore };
-        glow.SetAnchorsPreset(Control.LayoutPreset.Center);
-        glow.CustomMinimumSize = new Vector2(900, 600);
-        glow.PivotOffset = new Vector2(450, 300);
-        root.AddChild(glow);
+        glowMargin.AddChild(glow);
+        root.AddChild(glowMargin);
         return root;
     }
 }

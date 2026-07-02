@@ -15,7 +15,7 @@ public static class Settings
     public static float Music = 0.7f;
     public static float Sfx = 0.85f;
     public static float Ui = 0.85f;
-    public static bool Fullscreen;
+    public static bool Fullscreen = true;
     public static float AnimationSpeed = 1.0f;
     public static bool ConfirmMoves;
 

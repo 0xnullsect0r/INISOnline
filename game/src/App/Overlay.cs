@@ -25,7 +25,7 @@ public abstract partial class Overlay : Control
         panel.SetAnchorsPreset(LayoutPreset.Center);
         AddChild(panel);
 
-        Body = new VBoxContainer { CustomMinimumSize = new Vector2(460, 0) };
+        Body = new VBoxContainer { CustomMinimumSize = new Vector2(400, 0) };
         Body.AddThemeConstantOverride("separation", 12);
         panel.AddChild(Body);
 
