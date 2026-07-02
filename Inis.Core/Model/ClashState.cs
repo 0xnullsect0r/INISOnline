@@ -36,5 +36,11 @@ public sealed class ClashState
     /// <summary>Set once the Festival's "initiator loses a clan" has been applied.</summary>
     public bool FestivalApplied { get; set; }
 
+    /// <summary>Lug's Spear: no further Triskel reactions may be played this clash.</summary>
+    public bool TriskelsBlocked { get; set; }
+
+    /// <summary>Warlord's choice of who performs the first Resolution maneuver, if set.</summary>
+    public string? ForcedFirstManeuverId { get; set; }
+
     public int ShelteredTotal => Sheltered.Values.Sum();
 }

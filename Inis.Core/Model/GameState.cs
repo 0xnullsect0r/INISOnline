@@ -66,6 +66,9 @@ public sealed class GameState
     /// <summary>The clash currently being resolved, if any.</summary>
     public ClashState? ActiveClash { get; set; }
 
+    /// <summary>Open reaction (Triskel) windows, innermost last. Empty when nothing is interrupted.</summary>
+    public List<ReactionFrame> ReactionStack { get; init; } = new();
+
     /// <summary>What the engine is waiting on right now (whose move, and what kind).</summary>
     public PendingDecision? Pending { get; set; }
 

@@ -97,6 +97,8 @@ public enum PendingKind
     AttackResponse,
     /// <summary>The game has ended.</summary>
     GameOver,
+    /// <summary>A reaction (Triskel) window: play a matching card or pass. Appended for wire compat.</summary>
+    Reaction,
 }
 
 /// <summary>The kinds of move a player can submit to the engine.</summary>
@@ -115,6 +117,9 @@ public enum MoveType
     AttackDiscardCard,
     Resign,
     Debug,
+    // Reaction-window verbs; appended (never reordered) for wire compatibility.
+    PlayReaction,
+    PassReaction,
 }
 
 /// <summary>Direction of turn order, set by the Flock of Crows token each Assembly.</summary>

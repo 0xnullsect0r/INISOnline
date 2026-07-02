@@ -14,7 +14,7 @@ namespace Inis.Core.Rules;
 /// there is a single rules implementation. See docs/rules.md for the modeled rules and the
 /// (documented) simplifications around Triskel reactive timing.
 /// </summary>
-public sealed class GameEngine
+public sealed partial class GameEngine
 {
     public GameState State { get; }
     public GameData Data { get; }
@@ -441,6 +441,10 @@ public sealed class GameEngine
                 RequireActor(actor, pending);
                 ApplyAttackResponse(move);
                 break;
+            case PendingKind.Reaction:
+                RequireActor(actor, pending);
+                ApplyReaction(move);
+                break;
             default:
                 throw new InvalidOperationException($"Cannot act during {pending.Kind}.");
         }
@@ -499,15 +503,64 @@ public sealed class GameEngine
         if (!player.Hand.Remove(cid)) player.Advantages.Remove(cid);
         Emit("CardPlayed", player.PlayerId, cid);
 
-        // Resolve the effect (one handler per card; unmodeled cards are a legal no-op).
-        EffectRegistry.Resolve(this, player, def, move);
+        // Opponents may interrupt an Action card with Geis before its effect resolves.
+        if (def.Type == CardType.Action && TryOpenReactionWindow(new ReactionFrame
+            {
+                Trigger = ReactionTrigger.ActionCardPlayed,
+                TriggerPlayerId = player.PlayerId,
+                TriggerCardId = cid,
+                TriggerMove = move,
+                Continuation = ReactionContinuation.ResolvePlayedCard,
+            }))
+            return;
 
-        // Discard by type (unless an effect kept it, e.g. a retained Epic Tale).
-        if (def.Type == CardType.Action) State.ActionDiscard.Add(cid);
-        else if (def.Type == CardType.EpicTale) State.EpicDiscard.Add(cid);
+        FinishPlayCard(player, def, move, cancelled: false);
+    }
+
+    /// <summary>Resolves a played card once any pre-resolution reaction window has closed.</summary>
+    private void FinishPlayCard(PlayerState player, CardDefinition def, Move move, bool cancelled)
+    {
+        if (!cancelled)
+        {
+            // Resolve the effect (one handler per card; unmodeled cards are a legal no-op).
+            EffectRegistry.Resolve(this, player, def, move);
+
+            // Master Craftsman may pass a just-resolved Epic Tale on instead of discarding it.
+            if (def.Type == CardType.EpicTale && TryOpenReactionWindow(new ReactionFrame
+                {
+                    Trigger = ReactionTrigger.EpicTalePlayed,
+                    TriggerPlayerId = player.PlayerId,
+                    TriggerCardId = def.Id,
+                    Continuation = ReactionContinuation.DiscardPlayedCard,
+                }))
+                return;
+        }
+
+        DiscardPlayed(def);
+        AfterCardPlayed();
+    }
+
+    /// <summary>Discard by type (unless an effect kept it, e.g. a retained Epic Tale).</summary>
+    private void DiscardPlayed(CardDefinition def)
+    {
+        if (def.Type == CardType.Action) State.ActionDiscard.Add(def.Id);
+        else if (def.Type == CardType.EpicTale) State.EpicDiscard.Add(def.Id);
         // Advantage cards are set aside face-up; not tracked individually here.
+    }
 
-        if (State.ActiveClash is not null) return; // clash drives its own prompts
+    /// <summary>Continues the turn after a card play fully finishes (effect + reactions + discard).</summary>
+    private void AfterCardPlayed()
+    {
+        if (State.ActiveClash is not null)
+        {
+            // A reaction window may have overwritten a clash prompt set mid-effect; restore it.
+            if (State.Pending?.Kind == PendingKind.Reaction && State.ReactionStack.Count == 0)
+            {
+                if (State.ActiveClash.InResolution) PromptNextManeuver();
+                else PromptNextShelter();
+            }
+            return; // clash drives its own prompts
+        }
         AdvanceSeasonTurn();
     }
 
@@ -619,6 +672,16 @@ public sealed class GameEngine
             clash.FestivalApplied = true;
             RemoveClan(territory, State.PlayerById(instigatorId)!.Color);
         }
+
+        // Warlord holders may join the fight before the Citadels step.
+        if (TryOpenReactionWindow(new ReactionFrame
+            {
+                Trigger = ReactionTrigger.ClashStarted,
+                TriggerPlayerId = instigatorId,
+                TerritoryId = territoryId,
+                Continuation = ReactionContinuation.BeginCitadelStep,
+            }))
+            return;
         BeginCitadelStep();
     }
 
@@ -677,6 +740,12 @@ public sealed class GameEngine
         var clash = State.ActiveClash!;
         clash.InResolution = true;
         clash.Cursor = 0;
+        if (clash.ForcedFirstManeuverId is { } forced)
+        {
+            var idx = clash.Order.IndexOf(forced);
+            if (idx >= 0) clash.Cursor = idx;
+            clash.ForcedFirstManeuverId = null;
+        }
         clash.AgreedToEnd.Clear();
         PromptNextManeuver();
     }
@@ -741,7 +810,18 @@ public sealed class GameEngine
                 else
                 {
                     RemoveClan(territory, target.Color);
-                    AfterManeuver();
+                    clash.PendingAttackerId = null;
+                    clash.PendingTargetId = null;
+                    if (!TryOpenReactionWindow(new ReactionFrame
+                        {
+                            Trigger = ReactionTrigger.AttackResolved,
+                            TriggerPlayerId = player.PlayerId,
+                            TargetPlayerId = target.PlayerId,
+                            TerritoryId = territory.InstanceId,
+                            ClansRemoved = true,
+                            Continuation = ReactionContinuation.AfterManeuver,
+                        }))
+                        AfterManeuver();
                 }
                 break;
             }
@@ -760,6 +840,35 @@ public sealed class GameEngine
                 break;
             }
 
+            case MoveType.PlayCard:
+            {
+                // Maneuver-Triskels: played in place of a normal maneuver.
+                var cid = move.CardId ?? throw new InvalidOperationException("PlayCard needs a card id.");
+                Require(cid is TaleOfCuchulain or OgmasEloquence, "Only a maneuver Triskel may be played here.");
+                Require(player.Hand.Contains(cid), "Card not in hand.");
+                Require(!clash.TriskelsBlocked, "Lug's Spear blocks Triskel cards this clash.");
+                player.Hand.Remove(cid);
+                State.EpicDiscard.Add(cid);
+                Emit("CardPlayed", player.PlayerId, cid);
+
+                if (cid == OgmasEloquence) { EndClash(); return; }
+
+                // Tale of Cuchulain: remove up to two exposed clans from the clashing territory.
+                clash.AgreedToEnd.Clear();
+                for (var i = 0; i < 2; i++)
+                {
+                    var victim = move.TargetColor is { } chosen && Exposed(clash, chosen) > 0
+                        ? chosen
+                        : State.Players.Select(p => p.Color)
+                            .Where(c => c != player.Color && Exposed(clash, c) > 0)
+                            .Cast<ClanColor?>().FirstOrDefault();
+                    if (victim is not { } col) break;
+                    RemoveClan(territory, col);
+                }
+                AfterManeuver();
+                break;
+            }
+
             default:
                 throw new InvalidOperationException($"Illegal maneuver: {move.Type}.");
         }
@@ -770,6 +879,7 @@ public sealed class GameEngine
         var clash = State.ActiveClash!;
         var territory = State.Territories[clash.TerritoryId];
         var target = State.PlayerById(clash.PendingTargetId!)!;
+        var attacker = clash.PendingAttackerId!;
 
         if (move.Type == MoveType.AttackDiscardCard)
         {
@@ -785,6 +895,18 @@ public sealed class GameEngine
         }
         clash.PendingAttackerId = null;
         clash.PendingTargetId = null;
+
+        // The attacker may follow up (Bard after removing a clan; Raid in any case).
+        if (TryOpenReactionWindow(new ReactionFrame
+            {
+                Trigger = ReactionTrigger.AttackResolved,
+                TriggerPlayerId = attacker,
+                TargetPlayerId = target.PlayerId,
+                TerritoryId = territory.InstanceId,
+                ClansRemoved = move.Type != MoveType.AttackDiscardCard,
+                Continuation = ReactionContinuation.AfterManeuver,
+            }))
+            return;
         AfterManeuver();
     }
 
@@ -858,6 +980,14 @@ public sealed class GameEngine
                 if (AdjacentChieftainTerritories(player, territory).Count > 0)
                     list.Add(new Move { Type = MoveType.Withdraw, PlayerId = player.PlayerId });
                 list.Add(new Move { Type = MoveType.EndClash, PlayerId = player.PlayerId });
+                if (!clash.TriskelsBlocked)
+                {
+                    // Maneuver-Triskels are played as an extra kind of maneuver.
+                    if (player.Hand.Contains(TaleOfCuchulain))
+                        list.Add(new Move { Type = MoveType.PlayCard, PlayerId = player.PlayerId, CardId = TaleOfCuchulain });
+                    if (player.Hand.Contains(OgmasEloquence))
+                        list.Add(new Move { Type = MoveType.PlayCard, PlayerId = player.PlayerId, CardId = OgmasEloquence });
+                }
                 break;
 
             case PendingKind.AttackResponse:
@@ -865,6 +995,15 @@ public sealed class GameEngine
                 if (HasPlayableActionCard(player))
                     list.Add(new Move { Type = MoveType.AttackDiscardCard, PlayerId = player.PlayerId });
                 break;
+
+            case PendingKind.Reaction:
+            {
+                var frame = State.ReactionStack[^1];
+                foreach (var c in EligibleReactionCards(frame, player))
+                    list.Add(new Move { Type = MoveType.PlayReaction, PlayerId = player.PlayerId, CardId = c });
+                list.Add(new Move { Type = MoveType.PassReaction, PlayerId = player.PlayerId });
+                break;
+            }
         }
         return list;
     }

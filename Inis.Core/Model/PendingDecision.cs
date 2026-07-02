@@ -8,4 +8,7 @@ public sealed class PendingDecision
 
     /// <summary>Optional context — e.g. the card mid-resolution awaiting a follow-up choice.</summary>
     public string? CardId { get; init; }
+
+    /// <summary>For <see cref="PendingKind.Reaction"/>: the trigger name, for client labeling.</summary>
+    public string? Trigger { get; init; }
 }

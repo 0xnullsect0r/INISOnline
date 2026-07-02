@@ -56,8 +56,64 @@ public static class HeuristicAi
             PendingKind.ClashManeuver => legal.FirstOrDefault(m => m.Type == MoveType.Attack)
                                           ?? Prefer(legal, MoveType.EndClash),        // hit, else stop
             PendingKind.AttackResponse => Prefer(legal, MoveType.AttackRemoveClan),   // absorb by losing a clan
+            PendingKind.Reaction      => ReactionMove(e, me, legal),
             _ => legal[0],
         };
+    }
+
+    // ---------------------------------------------------------------- reactions
+
+    /// <summary>
+    /// Deterministic reaction (Triskel) policy. Plays pure-upside reactions immediately,
+    /// conditions the situational ones, and otherwise passes — <see cref="MoveType.PassReaction"/>
+    /// is always legal, so the AI can never be stuck in a window.
+    /// </summary>
+    private static Move ReactionMove(GameEngine e, PlayerState me, IReadOnlyList<Move> legal)
+    {
+        var pass = legal.First(m => m.Type == MoveType.PassReaction);
+
+        foreach (var m in legal.Where(m => m.Type == MoveType.PlayReaction))
+        {
+            switch (m.CardId)
+            {
+                // Pure upside: free deed / free steal / keep your cancelled card.
+                case "action.bard":
+                case "action.raid":
+                case "epic.lug_samildanach":
+                    return m;
+
+                // Pass the epic left and take a deed — always profitable.
+                case "action.master_craftsman":
+                {
+                    var recipient = e.State.Players.FirstOrDefault(p => p.PlayerId != me.PlayerId);
+                    return m with { TargetPlayerId = recipient?.PlayerId };
+                }
+
+                // Cancel only cards worth cancelling (top half of the priority list).
+                case "action.geis":
+                {
+                    var trigger = e.Pending?.CardId;
+                    if (trigger is not null && e.Data.TryGetCard(trigger, out var d)
+                        && Array.IndexOf(CardPriority, d.ResolvedEffectId) is >= 0 and < 8)
+                        return m;
+                    break;
+                }
+
+                // Join a clash only where we already have skin in the game.
+                case "action.warlord":
+                {
+                    var terrId = e.State.ActiveClash?.TerritoryId;
+                    if (terrId is not null && e.State.Territories[terrId].ClansOf(me.Color) > 0)
+                        return m;
+                    break;
+                }
+
+                // Never proactively burn Lug's Spear; humans can, the AI holds it.
+                case "epic.lugs_spear":
+                    break;
+            }
+        }
+        return pass;
     }
 
     private static Move Prefer(IReadOnlyList<Move> legal, MoveType type)
