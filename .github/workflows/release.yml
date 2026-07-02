@@ -1,14 +1,18 @@
 name: Release
 
 # Tag-driven release pipeline: pushing a version tag (e.g. v0.1.0) builds the desktop
-# installers (Linux Flatpak, Windows MSI, macOS DMG) and the server image, then attaches
-# them to a GitHub Release. The per-push CI in ci.yml remains the build/test gate.
+# installers (Linux Flatpak, Windows MSI, macOS DMG), a signed sideload Android APK,
+# and the server image, then attaches them to a GitHub Release. The per-push CI in
+# ci.yml remains the build/test gate.
 #
-# Mobile (iOS / Android) is NOT built here — store submission needs manual metadata,
-# screenshots, and review. See docs/release-mobile.md for the iOS + Android process.
+# Store submission (Google Play .aab, iOS .ipa) stays manual — it needs metadata,
+# screenshots, and review. See docs/release-mobile.md.
+#
+# workflow_dispatch runs every build job as a dry run without publishing a release.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write   # create the GitHub Release
@@ -32,11 +36,16 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build & push
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}/inisserver
-          TAG=${GITHUB_REF_NAME}
+          # GHCR requires a lowercase repository path (the repo is "INISOnline").
+          IMAGE=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')/inisserver
+          TAG=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
           docker build -f INISServer/Dockerfile -t "$IMAGE:$TAG" -t "$IMAGE:latest" .
-          docker push "$IMAGE:$TAG"
-          docker push "$IMAGE:latest"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            docker push "$IMAGE:$TAG"
+            docker push "$IMAGE:latest"
+          else
+            echo "Dry run (not a tag): skipping push."
+          fi
 
   # ---------------------------------------------------------------- Linux (.flatpak)
   linux-flatpak:
@@ -173,12 +182,93 @@ jobs:
           name: inis-macos-dmg
           path: build/macos/*.dmg
 
+  # ---------------------------------------------------------------- Android (.apk, sideload)
+  # Signed sideload APK attached to the release. Google Play submission (.aab)
+  # stays manual — see docs/release-mobile.md. Gate with the ENABLE_ANDROID_BUILDS
+  # repository variable.
+  android-apk:
+    name: Android APK (sideload)
+    runs-on: ubuntu-latest
+    if: ${{ vars.ENABLE_ANDROID_BUILDS == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: true
+          include-templates: true
+      - name: Install Android build template
+        # gradle_build/use_gradle_build=true (required for C#) needs the Android
+        # source template unpacked into the project — without it the preset is
+        # reported as "configuration errors" and headless export fails.
+        run: |
+          TDIR=$(ls -d "$HOME"/.local/share/godot/export_templates/*mono* | head -1)
+          mkdir -p game/android/build
+          unzip -o -q "$TDIR/android_source.zip" -d game/android/build
+          basename "$TDIR" > game/android/build/.build_version
+          touch game/android/.gdignore
+      - name: Configure Godot editor settings (SDK paths + debug keystore)
+        run: |
+          keytool -genkeypair -keystore "$HOME/.android-debug.keystore" \
+            -storepass android -keypass android -alias androiddebugkey \
+            -dname "CN=Android Debug,O=Android,C=US" -validity 10000 -keyalg RSA
+          mkdir -p ~/.config/godot
+          # Godot 4.4 reads the version-suffixed settings file.
+          cat > ~/.config/godot/editor_settings-4.4.tres <<EOFSET
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$HOME/.android-debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOFSET
+      - name: Decode release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$HOME/release.keystore"
+      - name: Build C# (export config)
+        run: dotnet build game/INISOnline.sln -c ExportRelease
+      - name: Import project resources
+        run: godot --headless --path game --import || true
+      - name: Export signed .apk
+        env:
+          # Godot reads release-signing credentials from these env vars,
+          # keeping secrets out of export_presets.cfg.
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: /home/runner/release.keystore
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEY_ALIAS }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          mkdir -p build/android
+          godot --headless --path game --export-release "Android" \
+            "$GITHUB_WORKSPACE/build/android/INISOnline.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inis-android-apk
+          path: build/android/*.apk
+
   # ---------------------------------------------------------------- GitHub Release
   release:
     name: Publish GitHub Release
-    needs: [server-image, linux-flatpak, windows-msi, macos-dmg]
+    needs: [server-image, linux-flatpak, windows-msi, macos-dmg, android-apk]
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    # Publish only for tag pushes, and only when every required job succeeded
+    # (android-apk may be skipped via the ENABLE_ANDROID_BUILDS variable).
+    if: >-
+      ${{ !cancelled()
+          && startsWith(github.ref, 'refs/tags/')
+          && needs.server-image.result == 'success'
+          && needs.linux-flatpak.result == 'success'
+          && needs.windows-msi.result == 'success'
+          && needs.macos-dmg.result == 'success'
+          && contains(fromJSON('["success","skipped"]'), needs.android-apk.result) }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -187,4 +277,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
           files: dist/**/*
