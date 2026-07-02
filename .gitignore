@@ -35,6 +35,13 @@ assets/export/
 *.env.local
 INISServer/appsettings.Development.local.json
 
+# ---- Signing keys (never commit) ----
+*.keystore
+*.p12
+*.pfx
+*.jks
+*.mobileprovision
+
 # ---- OS / editors ----
 .DS_Store
 Thumbs.db
