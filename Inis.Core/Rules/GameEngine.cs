@@ -402,6 +402,7 @@ public sealed partial class GameEngine
             p.Advantages.Clear();
         }
         foreach (var t in State.Territories.Values) t.HasFestival = false;
+        State.FiliTerritoryId = null; // the Fili token comes off when the season ends
         State.RoundNumber++;
         BeginAssembly();
     }
@@ -537,6 +538,7 @@ public sealed partial class GameEngine
         }
 
         DiscardPlayed(def);
+        if (State.ReactionStack.Count > 0) return; // a follow-up window owns the flow; its continuation resumes
         AfterCardPlayed();
     }
 
@@ -650,8 +652,14 @@ public sealed partial class GameEngine
     // ------------------------------------------------------------- clash flow
 
     /// <summary>Begins (or queues) a clash in a territory, instigated by a player.</summary>
-    public void StartClash(string territoryId, string instigatorId)
+    public void StartClash(string territoryId, string instigatorId, IEnumerable<string>? coalitionPartners = null)
     {
+        // Fili: nothing can start a clash in the token's territory until the season ends.
+        if (territoryId == State.FiliTerritoryId)
+        {
+            Emit("ClashPrevented", instigatorId, TerritoryId: territoryId);
+            return;
+        }
         if (State.ActiveClash is not null)
         {
             if (territoryId != State.ActiveClash.TerritoryId &&
@@ -662,6 +670,7 @@ public sealed partial class GameEngine
         var order = TurnOrderFrom(State.Players.FindIndex(p => p.PlayerId == instigatorId))
             .Select(s => State.Players[s].PlayerId).ToList();
         var clash = new ClashState { TerritoryId = territoryId, InstigatorId = instigatorId, Order = order };
+        if (coalitionPartners is not null) clash.CoalitionPlayerIds.AddRange(coalitionPartners);
         State.ActiveClash = clash;
         State.Phase = GamePhase.Clash;
         Emit("ClashStarted", instigatorId, TerritoryId: territoryId);
@@ -701,7 +710,9 @@ public sealed partial class GameEngine
         while (clash.Cursor < clash.Order.Count)
         {
             var pid = clash.Order[clash.Cursor];
-            if (pid != clash.InstigatorId && clash.ShelteredTotal < territory.TotalCitadels)
+            // Coalition movers may not use Citadels this clash (the instigator never shelters).
+            if (pid != clash.InstigatorId && !clash.CoalitionPlayerIds.Contains(pid)
+                && clash.ShelteredTotal < territory.TotalCitadels)
             {
                 var pl = State.PlayerById(pid)!;
                 var exposed = territory.ClansOf(pl.Color) - clash.Sheltered.GetValueOrDefault(pl.Color);
@@ -800,6 +811,9 @@ public sealed partial class GameEngine
             {
                 var target = State.PlayerById(move.TargetPlayerId ?? "");
                 Require(target is not null && Exposed(clash, target.Color) > 0, "Invalid Attack target.");
+                Require(!(clash.CoalitionPlayerIds.Contains(player.PlayerId)
+                          && clash.CoalitionPlayerIds.Contains(target!.PlayerId)),
+                    "Coalition partners cannot attack each other this clash.");
                 clash.AgreedToEnd.Clear();
                 clash.PendingAttackerId = player.PlayerId;
                 clash.PendingTargetId = target!.PlayerId;
@@ -932,7 +946,7 @@ public sealed partial class GameEngine
             if (t.Clans.Count(kv => kv.Value > 0) > 1)
             {
                 StartClash(next, clash.InstigatorId);
-                return;
+                if (State.ActiveClash is not null) return; // otherwise Fili prevented it; keep draining
             }
         }
 
@@ -975,7 +989,9 @@ public sealed partial class GameEngine
             case PendingKind.ClashManeuver:
                 var clash = State.ActiveClash!;
                 var territory = State.Territories[clash.TerritoryId];
-                foreach (var opp in State.Players.Where(p => p != player && Exposed(clash, p.Color) > 0))
+                foreach (var opp in State.Players.Where(p => p != player && Exposed(clash, p.Color) > 0
+                             && !(clash.CoalitionPlayerIds.Contains(player.PlayerId)
+                                  && clash.CoalitionPlayerIds.Contains(p.PlayerId))))
                     list.Add(new Move { Type = MoveType.Attack, PlayerId = player.PlayerId, TargetPlayerId = opp.PlayerId });
                 if (AdjacentChieftainTerritories(player, territory).Count > 0)
                     list.Add(new Move { Type = MoveType.Withdraw, PlayerId = player.PlayerId });

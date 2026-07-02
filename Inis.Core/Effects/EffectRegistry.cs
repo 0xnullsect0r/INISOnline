@@ -50,11 +50,13 @@ public static class EffectRegistry
             ["action.emissaries"] = Emissaries,
             ["action.clans_harmony"] = ClansHarmony,
 
-            // Reactive (Triskel) or not-yet-modeled actions — legal no-ops until implemented:
+            ["action.coalition"] = Coalition,
+            ["action.the_king_and_the_land"] = TheKingAndTheLand,
+            ["action.fili"] = Fili,
+
+            // Pure Triskels: their whole effect is reactive (handled by the reaction windows in
+            // GameEngine.Reactions); playing one as a plain Season card is a legal no-op.
             ["action.geis"] = NoOp,
-            ["action.coalition"] = NoOp,
-            ["action.the_king_and_the_land"] = NoOp,
-            ["action.fili"] = NoOp,
             ["action.raid"] = NoOp,
 
             // ----- Advantage cards (effects pending verification -> no-op) -----
@@ -245,11 +247,86 @@ public static class EffectRegistry
 
     private static void ClansHarmony(GameEngine e, PlayerState p, CardDefinition c, Move m)
     {
+        if (m.TerritoryId is not null)
+        {
+            // Single-territory mode: place 1 clan in any territory where you are present.
+            var t = e.Territory(m.TerritoryId);
+            if (t is not null && t.IsPresent(p.Color)) e.PlaceClans(p, t, 1);
+            return;
+        }
+        // Otherwise: 1 clan in each shared territory where you are present.
+        foreach (var t in e.State.Territories.Values.ToList())
+            if (t.IsPresent(p.Color) && t.Clans.Count(kv => kv.Value > 0) >= 2)
+                e.PlaceClans(p, t, 1);
+    }
+
+    private static void Coalition(GameEngine e, PlayerState p, CardDefinition c, Move m)
+    {
+        var from = e.Territory(m.FromTerritoryId ?? m.TerritoryId);
+        var to = e.Territory(m.ToTerritoryId);
+        if (from is null || to is null || !from.Adjacent.Contains(to.InstanceId)) return;
+        if (!from.IsPresent(p.Color) || from.Clans.Count(kv => kv.Value > 0) < 2) return; // must be shared
+
+        // Move the player's clans first; the clash check waits for the partner's answer.
+        var amount = Math.Min(m.Amount > 0 ? m.Amount : from.ClansOf(p.Color), from.ClansOf(p.Color));
+        if (amount <= 0) return;
+        from.AddClans(p.Color, -amount);
+        to.AddClans(p.Color, amount);
+
+        var partner = e.State.PlayerById(m.TargetPlayerId ?? "");
+        if (partner == p || (partner is not null && !from.IsPresent(partner.Color))) partner = null;
+        partner ??= e.State.Players.FirstOrDefault(o => o != p && from.IsPresent(o.Color));
+
+        var frame = new ReactionFrame
+        {
+            Trigger = ReactionTrigger.CardFollowUp,
+            TriggerPlayerId = p.PlayerId,
+            TriggerCardId = c.Id,
+            TargetPlayerId = partner?.PlayerId,
+            TerritoryId = from.InstanceId,
+            SecondaryTerritoryId = to.InstanceId,
+            Continuation = ReactionContinuation.CoalitionClash,
+        };
+        if (partner is not null && e.TryOpenReactionWindow(frame)) return;
+
+        // No partner able to answer: run the clash check now (turn flow resumes in PlayCard).
+        if (to.Clans.Count(kv => kv.Value > 0) > 1)
+            e.StartClash(to.InstanceId, p.PlayerId, new[] { p.PlayerId });
+    }
+
+    private static void Fili(GameEngine e, PlayerState p, CardDefinition c, Move m)
+    {
         var t = e.Territory(m.TerritoryId);
-        if (t is null || !t.IsPresent(p.Color)) return;
-        // Shared territory: more than one player present.
-        if (t.Clans.Count(kv => kv.Value > 0) < 2) return;
-        e.PlaceClans(p, t, m.Amount > 0 ? m.Amount : 1);
+        // The token goes in a shared territory (the player need not be present there).
+        if (t is null || t.Clans.Count(kv => kv.Value > 0) < 2) return;
+        e.State.FiliTerritoryId = t.InstanceId;
+    }
+
+    private static void TheKingAndTheLand(GameEngine e, PlayerState p, CardDefinition c, Move m)
+    {
+        var adv = m.CardIds?.FirstOrDefault() ?? p.Advantages.FirstOrDefault();
+        if (adv is null || !p.Advantages.Contains(adv)) return;
+
+        if (m.TargetPlayerId is null)
+        {
+            // Mode 1: discard one of your Advantage cards to draw an Epic Tale.
+            p.Advantages.Remove(adv);
+            e.DrawEpic(p);
+            return;
+        }
+
+        // Mode 2: give the advantage to another player present in its territory;
+        // gain a Deed, and they place a clan there.
+        var target = e.State.PlayerById(m.TargetPlayerId);
+        if (target is null || target == p) return;
+        if (!e.Data.TryGetCard(adv, out var advDef) || advDef.TerritoryId is null) return;
+        var t = e.State.Territories.Values.FirstOrDefault(x => x.DefinitionId == advDef.TerritoryId);
+        if (t is null || !t.IsPresent(target.Color)) return;
+
+        p.Advantages.Remove(adv);
+        if (!target.Advantages.Contains(adv)) target.Advantages.Add(adv);
+        e.GainDeed(p);
+        e.PlaceClans(target, t, 1);
     }
 
     // ----------------------------------------------------------------- Epic Tale effects

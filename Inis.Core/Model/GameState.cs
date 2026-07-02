@@ -66,6 +66,9 @@ public sealed class GameState
     /// <summary>The clash currently being resolved, if any.</summary>
     public ClashState? ActiveClash { get; set; }
 
+    /// <summary>Fili: territory where clashes cannot start until the season ends; null otherwise.</summary>
+    public string? FiliTerritoryId { get; set; }
+
     /// <summary>Open reaction (Triskel) windows, innermost last. Empty when nothing is interrupted.</summary>
     public List<ReactionFrame> ReactionStack { get; init; } = new();
 

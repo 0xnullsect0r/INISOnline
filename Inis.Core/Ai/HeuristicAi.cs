@@ -38,6 +38,8 @@ public static class HeuristicAi
         "epic.deirdres_beauty",       // draw (at the cost of a clan) — low priority
         "epic.battle_of_moytura",
         "epic.the_morrigan",
+        "action.the_king_and_the_land", // trade a spare advantage for an Epic Tale
+        "action.fili",                  // defensive: freeze a contested territory
     };
 
     /// <summary>Chooses a complete move for whichever player the engine is waiting on.</summary>
@@ -261,6 +263,24 @@ public static class HeuristicAi
                 return Play();
             case "action.druid":
                 return st.ActionDiscard.Count > 0 ? Play() : null;
+
+            case "action.the_king_and_the_land":
+            {
+                // Cash a held advantage in for an Epic Tale.
+                if (me.Advantages.Count == 0) return null;
+                return new Move
+                {
+                    Type = MoveType.PlayCard, PlayerId = me.PlayerId, CardId = cardId,
+                    CardIds = new[] { me.Advantages[0] },
+                };
+            }
+
+            case "action.fili":
+            {
+                // Freeze a shared territory we have a stake in.
+                var t = present.FirstOrDefault(x => x.Clans.Count(kv => kv.Value > 0) >= 2);
+                return t is not null ? Play(t.InstanceId) : null;
+            }
 
             default:
                 return null; // unknown/reactive card: let the caller try something else

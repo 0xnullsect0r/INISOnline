@@ -24,6 +24,7 @@ public sealed partial class GameEngine
     private const string LugsSpear = "epic.lugs_spear";
     private const string TaleOfCuchulain = "epic.tale_of_cuchulain";
     private const string OgmasEloquence = "epic.ogmas_eloquence";
+    private const string CoalitionCard = "action.coalition";
 
     private static bool IsClashScoped(ReactionTrigger t)
         => t is ReactionTrigger.ClashStarted or ReactionTrigger.AttackResolved;
@@ -105,7 +106,11 @@ public sealed partial class GameEngine
                 }
                 break;
             case ReactionTrigger.CardFollowUp:
-                break; // follow-up windows define their own moves (see LegalMoves)
+                // The follow-up "reaction" is the trigger card's own continuation — the targeted
+                // player answers it (e.g. Coalition's partner deciding to move along) or passes.
+                if (reactor.PlayerId == frame.TargetPlayerId && frame.TriggerCardId is { } tc)
+                    list.Add(tc);
+                break;
         }
 
         // Lug's Spear may be thrown into any clash-scoped window to shut Triskels down.
@@ -190,6 +195,20 @@ public sealed partial class GameEngine
             case ReactionContinuation.ResumeSeasonTurn:
                 if (State.ActiveClash is null) AdvanceSeasonTurn();
                 break;
+            case ReactionContinuation.CoalitionClash:
+            {
+                // Both movers are done; a contested destination now clashes, with the two
+                // marked as coalition partners (no Citadels, no attacking each other).
+                var dest = State.Territories[frame.SecondaryTerritoryId!];
+                if (dest.Clans.Count(kv => kv.Value > 0) > 1)
+                {
+                    var partners = new List<string> { frame.TriggerPlayerId! };
+                    if (frame.TargetPlayerId is { } partner) partners.Add(partner);
+                    StartClash(dest.InstanceId, frame.TriggerPlayerId!, partners);
+                }
+                AfterCardPlayed();
+                break;
+            }
         }
     }
 
@@ -301,6 +320,24 @@ public sealed partial class GameEngine
                 Emit("ReactionPlayed", reactor.PlayerId, LugsSpear);
                 State.ReactionStack.Remove(frame);
                 RunContinuation(frame); // the window slams shut for everyone
+                break;
+            }
+
+            case CoalitionCard when frame.Trigger == ReactionTrigger.CardFollowUp:
+            {
+                // The named partner moves clans from the shared territory to the same destination.
+                var from = State.Territories[frame.TerritoryId!];
+                var to = State.Territories[frame.SecondaryTerritoryId!];
+                var n = Math.Min(move.Amount > 0 ? move.Amount : 1, from.ClansOf(reactor.Color));
+                if (n > 0)
+                {
+                    from.AddClans(reactor.Color, -n);
+                    to.AddClans(reactor.Color, n); // the clash check happens in the continuation
+                    Emit("ClansMoved", reactor.PlayerId, TerritoryId: to.InstanceId, Detail: n.ToString());
+                }
+                Emit("ReactionPlayed", reactor.PlayerId, CoalitionCard);
+                State.ReactionStack.Remove(frame);
+                RunContinuation(frame);
                 break;
             }
 

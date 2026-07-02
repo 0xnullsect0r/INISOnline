@@ -42,5 +42,8 @@ public sealed class ClashState
     /// <summary>Warlord's choice of who performs the first Resolution maneuver, if set.</summary>
     public string? ForcedFirstManeuverId { get; set; }
 
+    /// <summary>Coalition: the two allied movers — they cannot use Citadels nor attack each other.</summary>
+    public List<string> CoalitionPlayerIds { get; init; } = new();
+
     public int ShelteredTotal => Sheltered.Values.Sum();
 }

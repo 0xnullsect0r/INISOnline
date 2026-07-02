@@ -32,6 +32,8 @@ public enum ReactionContinuation
     AfterManeuver,
     /// <summary>Continue the Season turn rotation (unless a clash is active).</summary>
     ResumeSeasonTurn,
+    /// <summary>Coalition: both movers are in; check the destination for a clash, then continue.</summary>
+    CoalitionClash,
 }
 
 /// <summary>
@@ -59,6 +61,9 @@ public sealed class ReactionFrame
     public string? TriggerCardId { get; init; }
 
     public string? TerritoryId { get; init; }
+
+    /// <summary>Second territory for two-territory follow-ups (e.g. Coalition's destination).</summary>
+    public string? SecondaryTerritoryId { get; init; }
 
     /// <summary>Secondary subject (e.g. the attacked player for Raid).</summary>
     public string? TargetPlayerId { get; init; }
