@@ -184,7 +184,7 @@ public sealed class GameEngine
             var def = Data.Territory(t.DefinitionId);
             if (def.AdvantageCardId is not { } adv) continue;
             var player = State.PlayerByColor(color);
-            if (player is not null && !player.Hand.Contains(adv)) player.Hand.Add(adv);
+            if (player is not null && !player.Advantages.Contains(adv)) player.Advantages.Add(adv);
         }
     }
 
@@ -385,7 +385,8 @@ public sealed class GameEngine
 
     private void EndSeason()
     {
-        // Discard Action cards; keep Epic Tales; return unplayed non-chieftain advantages.
+        // Discard Action cards; keep Epic Tales; return unplayed advantages to the supply
+        // (the next Assembly re-deals them to the current chieftains).
         foreach (var p in State.Players)
         {
             var keep = new List<string>();
@@ -393,11 +394,12 @@ public sealed class GameEngine
             {
                 if (!Data.TryGetCard(cid, out var def)) { keep.Add(cid); continue; }
                 if (def.Type == CardType.Action) State.ActionDiscard.Add(cid);
-                else if (def.Type == CardType.Advantage) { /* returned face-up to the supply */ }
+                else if (def.Type == CardType.Advantage) { /* legacy saves only; returned to supply */ }
                 else keep.Add(cid); // Epic Tales stay
             }
             p.Hand.Clear();
             p.Hand.AddRange(keep);
+            p.Advantages.Clear();
         }
         foreach (var t in State.Territories.Values) t.HasFestival = false;
         State.RoundNumber++;
@@ -489,12 +491,12 @@ public sealed class GameEngine
     private void PlayCard(PlayerState player, Move move)
     {
         var cid = move.CardId ?? throw new InvalidOperationException("PlayCard needs a card id.");
-        Require(player.Hand.Contains(cid), "Card not in hand.");
+        Require(player.Hand.Contains(cid) || player.Advantages.Contains(cid), "Card not in hand.");
         var def = Data.Card(cid);
 
         State.ConsecutivePasses = 0;
         State.BrennHasOpened = true;
-        player.Hand.Remove(cid);
+        if (!player.Hand.Remove(cid)) player.Advantages.Remove(cid);
         Emit("CardPlayed", player.PlayerId, cid);
 
         // Resolve the effect (one handler per card; unmodeled cards are a legal no-op).
@@ -583,7 +585,9 @@ public sealed class GameEngine
 
     public void TakeAdvantage(PlayerState player, string advantageId)
     {
-        if (!player.Hand.Contains(advantageId)) player.Hand.Add(advantageId);
+        // Face-up zone: advantages are public information (never redacted).
+        foreach (var other in State.Players) other.Advantages.Remove(advantageId);
+        if (!player.Advantages.Contains(advantageId)) player.Advantages.Add(advantageId);
         Emit("AdvantageTaken", player.PlayerId, advantageId);
     }
 
@@ -831,7 +835,7 @@ public sealed class GameEngine
                 break;
 
             case PendingKind.SeasonTurn:
-                foreach (var c in player.Hand.Distinct())
+                foreach (var c in player.Hand.Concat(player.Advantages).Distinct())
                     list.Add(new Move { Type = MoveType.PlayCard, PlayerId = player.PlayerId, CardId = c });
                 if (!(player == State.Brenn && !State.BrennHasOpened))
                 {

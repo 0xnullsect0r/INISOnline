@@ -49,7 +49,31 @@ public static class EffectRegistry
             ["action.master_craftsman"] = MasterCraftsman,
             ["action.emissaries"] = Emissaries,
             ["action.clans_harmony"] = ClansHarmony,
-            // Geis / Coalition / The King and the Land / Fili / Raid: reactive or unmodeled -> no-op.
+
+            // Reactive (Triskel) or not-yet-modeled actions — legal no-ops until implemented:
+            ["action.geis"] = NoOp,
+            ["action.coalition"] = NoOp,
+            ["action.the_king_and_the_land"] = NoOp,
+            ["action.fili"] = NoOp,
+            ["action.raid"] = NoOp,
+
+            // ----- Advantage cards (effects pending verification -> no-op) -----
+            ["advantage.meadows"] = NoOp,
+            ["advantage.forest"] = NoOp,
+            ["advantage.mountains"] = NoOp,
+            ["advantage.highlands"] = NoOp,
+            ["advantage.misty_lands"] = NoOp,
+            ["advantage.cove"] = NoOp,
+            ["advantage.salt_mine"] = NoOp,
+            ["advantage.iron_mine"] = NoOp,
+            ["advantage.stone_circle"] = NoOp,
+            ["advantage.swamp"] = NoOp,
+            ["advantage.lost_vale"] = NoOp,
+            ["advantage.tir_na_nog"] = NoOp,
+            ["advantage.hills"] = NoOp,
+            ["advantage.valley"] = NoOp,
+            ["advantage.plains"] = NoOp,
+            ["advantage.moor"] = NoOp,
 
             // ----- Epic Tales -----
             ["epic.balors_eye"] = BalorsEye,
@@ -57,12 +81,34 @@ public static class EffectRegistry
             ["epic.deirdres_beauty"] = DeirdresBeauty,
             ["epic.battle_of_moytura"] = BattleOfMoytura,
             ["epic.the_morrigan"] = TheMorrigan,
-        };
 
-        // Guarantee one handler per card definition: fill any gaps with the legal no-op.
-        foreach (var c in GameData.Default.Cards)
-            if (!map.ContainsKey(c.ResolvedEffectId))
-                map[c.ResolvedEffectId] = NoOp;
+            // Epic Tales pending verification / reactive — legal no-ops until implemented:
+            ["epic.diarmuid_grainne"] = NoOp,
+            ["epic.eriu"] = NoOp,
+            ["epic.battle_frenzy"] = NoOp,
+            ["epic.kernunos_sanctuary"] = NoOp,
+            ["epic.the_otherworld"] = NoOp,
+            ["epic.tale_of_cuchulain"] = NoOp,
+            ["epic.dagdas_club"] = NoOp,
+            ["epic.dagdas_harp"] = NoOp,
+            ["epic.lugs_spear"] = NoOp,
+            ["epic.dagdas_cauldron"] = NoOp,
+            ["epic.tuans_memory"] = NoOp,
+            ["epic.cathbads_word"] = NoOp,
+            ["epic.champions_share"] = NoOp,
+            ["epic.oengus_ploy"] = NoOp,
+            ["epic.tailtus_land"] = NoOp,
+            ["epic.breas_tyranny"] = NoOp,
+            ["epic.ogmas_eloquence"] = NoOp,
+            ["epic.strengs_resolve"] = NoOp,
+            ["epic.the_dagda"] = NoOp,
+            ["epic.manannans_horses"] = NoOp,
+            ["epic.children_of_dana"] = NoOp,
+            ["epic.the_fianna"] = NoOp,
+            ["epic.maeves_wealth"] = NoOp,
+            ["epic.lug_samildanach"] = NoOp,
+            ["epic.nuada_silverhand"] = NoOp,
+        };
 
         return map;
     }
@@ -138,7 +184,7 @@ public static class EffectRegistry
         var anchor = e.Territory(m.TerritoryId) ?? e.State.Territories.Values.FirstOrDefault();
         if (anchor is null) return;
         var inPlay = e.State.Territories.Values.Select(t => t.DefinitionId).ToHashSet();
-        var nextDef = GameData.Default.Territories.FirstOrDefault(d => !inPlay.Contains(d.Id));
+        var nextDef = e.Data.Territories.FirstOrDefault(d => !inPlay.Contains(d.Id));
         if (nextDef is null) return;
 
         var inst = new TerritoryState { InstanceId = $"T{e.State.Territories.Count}", DefinitionId = nextDef.Id };

@@ -61,6 +61,22 @@ public class RedactionTests
     }
 
     [Fact]
+    public void Face_Up_Advantages_Are_Public_For_Everyone()
+    {
+        var e = MidGame();
+        var holder = e.State.Players[1];
+        holder.Advantages.Add("advantage.forest"); // face-up zone, public information
+
+        var view = PlayerView.Redact(e.State, e.State.Players[0].PlayerId);
+        var seen = view.Players.First(p => p.PlayerId == holder.PlayerId);
+        Assert.Contains("advantage.forest", seen.Advantages);
+
+        var spectator = PlayerView.Redact(e.State, recipientId: null);
+        Assert.Contains("advantage.forest",
+            spectator.Players.First(p => p.PlayerId == holder.PlayerId).Advantages);
+    }
+
+    [Fact]
     public void Spectator_Sees_No_Hand_Contents()
     {
         var e = MidGame();

@@ -17,6 +17,38 @@ public class CardEffectTests
     }
 
     [Fact]
+    public void Advantage_Cards_Live_In_The_Face_Up_Zone_And_Are_Playable()
+    {
+        var s = NewState(2);
+        AddTerritory(s, "T0", (ClanColor.Red, 1));
+        var engine = SeasonEngine(s);
+        var p = s.Players[0];
+
+        engine.TakeAdvantage(p, "advantage.forest");
+        Assert.Contains("advantage.forest", p.Advantages);
+        Assert.DoesNotContain("advantage.forest", p.Hand);
+
+        Assert.Contains(engine.LegalMoves(),
+            m => m.Type == MoveType.PlayCard && m.CardId == "advantage.forest");
+
+        engine.Apply(new Move { Type = MoveType.PlayCard, CardId = "advantage.forest" });
+        Assert.DoesNotContain("advantage.forest", p.Advantages);
+    }
+
+    [Fact]
+    public void Taking_An_Advantage_Removes_It_From_Its_Previous_Holder()
+    {
+        var s = NewState(2);
+        AddTerritory(s, "T0", (ClanColor.Red, 1));
+        var engine = SeasonEngine(s);
+        s.Players[1].Advantages.Add("advantage.hills");
+
+        engine.TakeAdvantage(s.Players[0], "advantage.hills");
+        Assert.Contains("advantage.hills", s.Players[0].Advantages);
+        Assert.DoesNotContain("advantage.hills", s.Players[1].Advantages);
+    }
+
+    [Fact]
     public void New_Clans_Places_Clans_Where_Present()
     {
         var s = NewState(2);
