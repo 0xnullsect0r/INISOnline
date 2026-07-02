@@ -41,6 +41,11 @@ public sealed class Lobby
     public Guid? GameId { get; set; }
     public DateTimeOffset CreatedAt { get; } = DateTimeOffset.UtcNow;
 
+    /// <summary>Last join/leave/ready/config change (for stale-lobby eviction).</summary>
+    public DateTimeOffset LastActivityUtc { get; set; } = DateTimeOffset.UtcNow;
+
+    public void Touch() => LastActivityUtc = DateTimeOffset.UtcNow;
+
     public LobbySeat? SeatOf(Guid userId) => Seats.FirstOrDefault(s => s.UserId == userId);
     public bool Contains(Guid userId) => Seats.Any(s => s.UserId == userId);
     public int FilledSeats => Seats.Count(s => s.UserId is not null || s.IsAi);

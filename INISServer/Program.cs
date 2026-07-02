@@ -1,9 +1,11 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using InisServer.Auth;
 using InisServer.Data;
 using InisServer.Endpoints;
 using InisServer.Game;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
@@ -11,10 +13,14 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // ---- Configuration ----
+const string devSigningKey = "dev-only-insecure-signing-key-change-me-please-32+chars";
 var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
 if (string.IsNullOrWhiteSpace(jwt.SigningKey))
-    jwt.SigningKey = builder.Configuration["JWT_SIGNING_KEY"]
-        ?? "dev-only-insecure-signing-key-change-me-please-32+chars";
+    jwt.SigningKey = builder.Configuration["JWT_SIGNING_KEY"] ?? devSigningKey;
+// Never boot a non-development deployment on the well-known dev key.
+if (!builder.Environment.IsDevelopment() && jwt.SigningKey == devSigningKey)
+    throw new InvalidOperationException(
+        "JWT signing key is the insecure dev default. Set Jwt:SigningKey or JWT_SIGNING_KEY.");
 builder.Services.AddSingleton(jwt);
 builder.Services.AddSingleton<JwtTokenService>();
 
@@ -26,6 +32,33 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connString));
 
 // ---- Authoritative game sessions ----
 builder.Services.AddSingleton<GameSessionManager>();
+builder.Services.AddHostedService<MaintenanceService>();
+
+// ---- Rate limiting (per-IP fixed windows; strict on /auth) ----
+var authPerMinute = builder.Configuration.GetValue("RateLimits:AuthPerMinute", 20);
+var globalPerMinute = builder.Configuration.GetValue("RateLimits:GlobalPerMinute", 600);
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = globalPerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
+    o.AddPolicy("auth", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = authPerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
+});
 
 // ---- Auth ----
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -60,8 +93,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddOpenApi();
+
+// ---- CORS ----
+// Browsers only (the Godot client is not CORS-constrained). Development stays permissive;
+// otherwise only the configured origins may call the API.
+var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
+    ?? new[] { "https://inis.aricummings.com" };
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
-    p.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(_ => true).AllowCredentials()));
+{
+    if (builder.Environment.IsDevelopment())
+        p.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(_ => true).AllowCredentials();
+    else
+        p.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+}));
 
 var app = builder.Build();
 
@@ -78,6 +122,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors();
+app.UseRateLimiter();
 app.UseWebSockets();
 app.UseAuthentication();
 app.UseAuthorization();

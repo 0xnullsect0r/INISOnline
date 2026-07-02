@@ -30,6 +30,13 @@ public sealed class GameSession
 
     public Guid GameId { get; }
 
+    /// <summary>Last time a connection was opened or a message handled (for idle eviction).</summary>
+    public DateTimeOffset LastActivityUtc { get; private set; } = DateTimeOffset.UtcNow;
+
+    public int ConnectionCount => _connections.Count;
+
+    public bool IsFinished => _engine.State.Phase == GamePhase.GameOver;
+
     public GameSession(Guid gameId, GameEngine engine, IReadOnlyList<SeatInfo> seats,
         IServiceScopeFactory scopes, ILogger log)
     {
@@ -83,6 +90,7 @@ public sealed class GameSession
             IsSpectator = spectator,
         };
         _connections[conn.ConnId] = conn;
+        LastActivityUtc = DateTimeOffset.UtcNow;
         try
         {
             // Reconnection / first connect: replay a full redacted StateSync + the pending prompt.
@@ -109,6 +117,7 @@ public sealed class GameSession
 
     private async Task HandleInboundAsync(Connection conn, string json, CancellationToken ct)
     {
+        LastActivityUtc = DateTimeOffset.UtcNow;
         var env = Envelope.TryParse(json);
         if (env is null) { await SendAsync(conn, ServerMessages.Error("bad_envelope", "Malformed message."), ct); return; }
 

@@ -14,7 +14,7 @@ namespace INISServer.Tests;
 /// the factory's lifetime). The production wiring — auth, sessions, WebSockets — is otherwise
 /// unchanged.
 /// </summary>
-public sealed class InisAppFactory : WebApplicationFactory<Program>
+public class InisAppFactory : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
 
@@ -22,6 +22,9 @@ public sealed class InisAppFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
         _connection.Open();
+
+        // The server refuses to boot outside Development on the dev signing key.
+        builder.UseSetting("Jwt:SigningKey", "integration-test-signing-key-0123456789abcdef");
 
         builder.ConfigureServices(services =>
         {

@@ -46,6 +46,8 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
 
         _lobbies[lobby.Id] = lobby;
         _codeToLobby[lobby.InviteCode] = lobby.Id;
+        _log.LogInformation("Lobby {Lobby} created by {User} ({Capacity} seats, seasons={Seasons}, extended={Extended})",
+            lobby.Id, hostUserId, capacity, seasons, extended);
         return lobby;
     }
 
@@ -63,6 +65,7 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
         {
             if (lobby.Started) { error = "Game already started."; return false; }
             if (lobby.Contains(userId)) return true; // idempotent re-join
+            lobby.Touch();
             var seat = lobby.Seats.FirstOrDefault(s => s.IsOpen);
             if (seat is null) { error = "Lobby is full."; return false; }
             seat.UserId = userId;
@@ -78,6 +81,7 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
         {
             var seat = lobby.SeatOf(userId);
             if (seat is null) return false;
+            lobby.Touch();
             seat.UserId = null;
             seat.Username = null;
             seat.Ready = false;
@@ -98,6 +102,7 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
         {
             var seat = lobby.SeatOf(userId);
             if (seat is null) { error = "You are not in this lobby."; return false; }
+            lobby.Touch();
             seat.Ready = ready;
             return true;
         }
@@ -113,6 +118,7 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
             if (index < 0 || index >= lobby.Seats.Count) { error = "No such seat."; return false; }
             var seat = lobby.Seats[index];
             if (seat.UserId is not null) { error = "Seat is occupied by a player."; return false; }
+            lobby.Touch();
             seat.IsAi = ai;
             return true;
         }
@@ -124,6 +130,7 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
         lock (lobby)
         {
             if (lobby.HostUserId != hostUserId) { error = "Only the host can invite."; return false; }
+            lobby.Touch();
             lobby.InvitedUserIds.Add(friendUserId);
             return true;
         }
@@ -212,6 +219,49 @@ public sealed class GameSessionManager(IServiceScopeFactory scopes, ILoggerFacto
 
         // Another caller may have reconstructed concurrently; keep the first winner.
         return _sessions.GetOrAdd(gameId, session);
+    }
+
+    // ------------------------------------------------------------------ maintenance
+
+    /// <summary>
+    /// Evicts stale lobbies and idle sessions. Unstarted lobbies expire after
+    /// <paramref name="lobbyTtl"/> of inactivity; started lobbies linger the same TTL so late
+    /// clients can still resolve the game id. Sessions with no connections are dropped once the
+    /// game is over or idle beyond <paramref name="sessionIdle"/> — the game row is persisted, so
+    /// <see cref="GetSessionAsync"/> can always rebuild one on demand.
+    /// </summary>
+    public int Sweep(TimeSpan lobbyTtl, TimeSpan sessionIdle)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var removed = 0;
+
+        foreach (var (id, lobby) in _lobbies)
+        {
+            bool stale;
+            lock (lobby) stale = now - lobby.LastActivityUtc > lobbyTtl;
+            if (stale && _lobbies.TryRemove(id, out var gone))
+            {
+                _codeToLobby.TryRemove(gone.InviteCode, out _);
+                removed++;
+                _log.LogInformation("Swept stale lobby {Lobby} (started={Started})", id, gone.Started);
+            }
+        }
+
+        foreach (var (id, session) in _sessions)
+        {
+            if (session.ConnectionCount != 0) continue;
+            if (!session.IsFinished && now - session.LastActivityUtc <= sessionIdle) continue;
+            if (_sessions.TryRemove(id, out var gone))
+            {
+                // A connection may have raced in between the check and the removal; put the
+                // still-live session back rather than strand its sockets on an orphan.
+                if (gone.ConnectionCount != 0) { _sessions.GetOrAdd(id, gone); continue; }
+                removed++;
+                _log.LogInformation("Swept session {Game} (finished={Finished})", id, gone.IsFinished);
+            }
+        }
+
+        return removed;
     }
 
     private static string NewInviteCode()
