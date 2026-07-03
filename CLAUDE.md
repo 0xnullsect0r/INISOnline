@@ -58,8 +58,10 @@ The engine is a deterministic state machine. Key public API:
 - `engine.LastEvents` — animatable facts from the last move
 
 Key subsystems:
-- **Model/** — `GameState`, `PlayerState`, `TerritoryState`, `PendingDecision`
-- **Rules/** — `GameEngine`, `GameSetup`, `VictoryEvaluator`
+- **Model/** — `GameState`, `PlayerState`, `TerritoryState`, `PendingDecision`, `ReactionState`
+- **Rules/** — `GameEngine`, `GameEngine.Reactions` (Triskel reaction windows: a
+  `ReactionFrame` stack with persisted continuations; windows only open when an
+  eligible holder exists and passing is always legal), `GameSetup`, `VictoryEvaluator`
 - **Effects/** — `EffectRegistry` (one handler per card effect)
 - **Data/** — `GameData` loads embedded `cards.json` / `territories.json`
 - **Ai/** — `HeuristicAi` (deterministic heuristic AI for seat-filling)
@@ -101,7 +103,9 @@ One WebSocket JSON protocol (v1) serves both online and LAN. The host is always 
 ### Game Options
 
 - **Base** — 2–4 players, 17 action cards
-- **Seasons of Inis** — 2–5 players (5th clan), 23 action cards
+- **Seasons of Inis** — 2–5 players (5th clan), the 4 new action cards + updated
+  Exploration/Druid, season wheel (Sacred Festivals + seasonal modifiers),
+  harbours & sea travel (`GameEngine.AreConnected`), island territories
 - **Extended** — 2–8 players, doubled action deck (house-ruled)
 
 ## CI/CD

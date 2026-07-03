@@ -60,16 +60,14 @@ text (never the publisher's verbatim wording). Keep it that way.
 | 7 | LAN multiplayer | **DONE** — client-hosted authoritative session (same WS protocol) + UDP discovery; loopback-validated |
 | 8 | Settings, audio, polish, Debug screen | **DONE** — settings (persisted + live), original procedural audio (SFX + ambient), gated Debug/Cheat (works online via DebugCommand) |
 | 9 | Cross-platform export & packaging | **DONE** — `export_presets.cfg` (Win/macOS/Linux/Android/iOS) + committed `game/INISOnline.sln`; per-build `server_url`; headless Linux export boots & links the engine. Other targets need their SDKs/signing. |
-| 10 | *Seasons of Inis* expansion | **DONE (toggle)** — `GameOptions.SeasonsOfInis`: expansion action cards, exploration/druid replacements, 5th clan/seat, threaded through all modes. Season board (summer/winter), harbours & sea travel remain. |
+| 10 | *Seasons of Inis* expansion | **DONE (full)** — content toggle + season wheel with Sacred Festivals, Winter/Summer modifiers, harbours & sea travel, 6 new territories/advantages |
 | 11 | 6–8 player extended mode | **DONE** — `GameOptions.Extended`: 8 clan colours, doubled action deck, seat cap 8; threaded through all modes (house-ruled, non-official) |
 | 12 | Release CI/CD (installers) | **DONE** — `.github/workflows/release.yml`: tag-driven exports (desktop now; Apple/Android gated on secrets) + server image to GHCR + GitHub Release |
 
-**All 12 phases are done.** The main remaining work is the deeper *Seasons of Inis*
-subsystems (season board summer/winter modifiers, harbours, sea travel — Phase 10
-extends), fleshing out the documented engine simplifications (some Triskel reactive
-windows / Advantage / Epic effects), real per-platform signing in the release
-workflow, and broader playtest polish. Client work needs a session that can run the Godot
-editor; Phase 5/AI/engine work only needs the .NET SDK + CI.
+**All 12 phases are done, plus the v1.1 finish pass (see §11).** Remaining nice-to-
+haves: the reactive/territory-effect Advantage modifiers (Meadows, Cove, Iron Mine,
+…) listed in `docs/rules.md`, real per-platform signing (Apple; Android keystore is
+gated on `vars.ENABLE_ANDROID_BUILDS`), and broader playtest polish.
 
 ## 4. Repo layout & key files
 
@@ -114,14 +112,11 @@ server both drive a game ONLY through these.
 
 ## 6. Conventions (follow these)
 
-- **Branch:** `claude/confident-lovelace-fclngx`. Develop and push there. **Do NOT
-  open a PR unless explicitly asked.** Use `git push -u origin <branch>` with
-  exponential-backoff retries on network errors.
-- **Commits** end with:
-  ```
-  Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
-  Claude-Session: https://claude.ai/code/session_01HpZT6SEd7VtLu85nJmMeSX
-  ```
+- **Branch:** whichever `claude/…` feature branch the session starts on (currently
+  `claude/finish-project`). Develop and push there. **Do NOT open a PR unless
+  explicitly asked.**
+- **Commits** end with the session's standard `Co-Authored-By` + `Claude-Session`
+  trailer.
 - **Do NOT** put the model identifier / model name into commits, code, PRs, or any
   pushed artifact (chat only).
 - **IP hygiene:** keep all card/rules text **paraphrased**; art **original**.
@@ -151,15 +146,13 @@ CI (build + test + docker image) runs on every push; gate work on it being green
   seeded stream on construction. The draft leftover deck moved into `DraftState`.
   Model collections are `init`-settable so `GameState` round-trips through
   `Inis.Core/Net/InisJson`. Covered by `ReloadDeterminismTests`.
-- **Redaction over-hides advantages (minor).** `PlayerView.Redact` masks an
-  opponent's whole hand including face-up Advantage cards (engine stores them in
-  `Hand`). Anti-cheat is safe (never leaks); reveal public advantages later.
-- `Effects/EffectRegistry` and `Exploration` use `GameData.Default` rather than the
-  engine's injected `Data` — fine for the default catalogue, fix when supporting
-  alternate content sets (expansion modules).
-- Several Triskel reactive-timing windows and some Advantage/Epic effects are
-  modeled as legal no-ops; see `docs/rules.md` "documented simplifications". Flesh
-  out as needed (notably for Phase 10).
+- **Redaction over-hides advantages — FIXED (v1.1).** `PlayerState.Advantages` is
+  now the real face-up zone; `PlayerView.Redact` leaves it public.
+- **`GameData.Default` injection — FIXED (v1.1).** Effect handlers use the
+  engine's injected `Data`.
+- **Triskel windows / card effects — DONE (v1.1).** All 30 Epic Tales and every
+  Action card are implemented (reaction-window framework); the remaining
+  advantage *modifiers* are tracked in `docs/rules.md`.
 
 ## 9. Phase 5 — DONE (what was built)
 
@@ -225,3 +218,38 @@ Always export `DOTNET_ROOT=$HOME/.dotnet` for the Godot run.
   client (e.g. `HttpListener` WebSockets, or Godot's `TcpServer` + `WebSocketPeer`).
 - Discovery: UDP broadcast a small beacon (game name, host ip/port); a LAN browser
   screen lists beacons and connects. No auth needed on LAN (or a simple room code).
+
+## 11. v1.1 finish pass (this session) — DONE
+
+A full audit + fix pass on branch `claude/finish-project` (see the plan file and
+`docs/rules.md` / `docs/protocol.md` for detail):
+
+- **M0 hygiene:** committed stray UI fixes, `.gitattributes` (killed 112 phantom
+  `.import` diffs), keystore gitignore rules, dependency pins (SQLitePCLRaw,
+  Microsoft.OpenApi), `DOTNET_ROLL_FORWARD=Major` note.
+- **M1 release pipeline:** GHCR image name lowercased, Android export unblocked
+  (build template + versioned editor settings; gated on `ENABLE_ANDROID_BUILDS`),
+  release job gating fixed, `workflow_dispatch` dry-run support.
+- **M2 server hardening:** per-IP rate limiting (strict on `/auth`), CORS locked to
+  configured origins, auth audit logging, JWT dev-key fail-fast, lobby/session
+  sweeper (`MaintenanceService`), docker-compose requires real secrets.
+- **M3 engine fidelity:** face-up Advantage zone; reaction (Triskel) window
+  framework (`GameEngine.Reactions.cs`, `ReactionFrame` stack, persisted
+  continuations); all 9 reactive cards + Fili/Coalition/The King and the Land; all
+  30 Epic Tales researched (paraphrased) and implemented; card-set membership
+  corrected (Raid/Emissaries base, Master Craftsman 4P, Seasons 5th-player cards).
+- **M4 Seasons of Inis (full):** season wheel + Sacred Festivals (Spring/Winter/
+  Autumn/Summer), Winter movement cap, Beltane `SummerMove`, harbours + sea travel
+  via the `AreConnected` choke point, islands, 6 new territories/advantages
+  (Hy Brasil counts as a Deed at the victory check).
+- **M5 protocol v2:** version enforced by both hosts; docs rewritten; Triskel-
+  stacked AI soak (25 seeds) added.
+- **M6 client UX:** card-art hand dock (`CardWidget`), reaction prompts, clash
+  panel, victory pips, chat (online + LAN), reconnect backoff, LanHost log fix,
+  mid-game explored tiles now render, harbour markers, piece pop-in, music
+  crossfade, V-Sync/UI-scale/colorblind settings.
+- **Verification:** 149 engine tests, 9 server tests, client build, Godot headless
+  `SmokeTest` + `LanSmoke` all green.
+
+**Release:** tag `v1.1-rc1` first to verify the fixed pipeline end-to-end, then
+`v1.1` (tag pushes are done by the maintainer, not automation).

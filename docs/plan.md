@@ -449,3 +449,31 @@ Phase 0 remains the per-push gate; this phase adds the tag-driven release job.
   `docs/credits.md`.
 - Whether to later split `INISServer`/`Inis.Core` into their own repos/submodules —
   kept as extraction-ready folders since this session can only push to `INISOnline`.
+
+
+---
+
+## v1.1 finish pass (post-Phase-12)
+
+A comprehensive audit + completion pass (branch `claude/finish-project`), in seven
+milestones — see `transfer.md` §11 for the summary and `docs/rules.md` /
+`docs/protocol.md` for the resulting canon:
+
+- **M0** repo hygiene (`.gitattributes`, keystore ignore rules, dependency pins).
+- **M1** release pipeline fixes (GHCR lowercase, Android build template + editor
+  settings, job gating, dispatch dry-runs) — verified with a pre-release tag before
+  cutting `v1.1`.
+- **M2** server hardening: rate limits, CORS scoping, auth audit logs, JWT
+  fail-fast, background lobby/session sweeper, compose secret requirements.
+- **M3** rules fidelity: face-up Advantage zone; the reaction (Triskel) window
+  framework with persisted continuations; every Action and Epic Tale card
+  researched, paraphrased, implemented and tested; card-set membership corrected.
+- **M4** full *Seasons of Inis*: season wheel + Sacred Festivals, seasonal
+  modifiers, harbours/sea travel through the `AreConnected` choke point, islands
+  and the six new territories/advantages.
+- **M5** protocol v2 with handshake enforcement; Triskel-stacked AI soak; docs.
+- **M6** client UX: card-art hand dock, reaction prompts, clash panel, victory
+  progress, chat, reconnect backoff, board fixes (mid-game tiles, harbours,
+  piece pop-in), audio crossfade, V-Sync/UI-scale/colorblind settings.
+- **M7** docs + final verification (149 engine / 9 server tests, headless client
+  smokes) and the `v1.1` release.
