@@ -35,6 +35,10 @@ public sealed partial class GameEngine
     private const string CathbadsWord = "epic.cathbads_word";
     private const string TheFianna = "epic.the_fianna";
 
+    // Sacred Festival options (Seasons of Inis) — pseudo-card ids, not real cards.
+    private const string FestivalSamhain = "festival.samhain";   // discard an Action, draw an Epic
+    private const string FestivalLugnasad = "festival.lugnasad"; // discard Epics, muster clans
+
     // Windows Lug's Spear shuts down ("no Triskels until the clash ends" — the clash-end
     // window itself fires as the block lifts, so it stays open).
     private static bool IsClashScoped(ReactionTrigger t)
@@ -95,6 +99,9 @@ public sealed partial class GameEngine
             case ReactionTrigger.CardFollowUp:
             case ReactionTrigger.AssemblySetAside:
                 return frame.TargetPlayerId is { } tid ? new[] { tid } : Enumerable.Empty<string>();
+            case ReactionTrigger.SacredFestival:
+                // Everyone, in turn order from the Brenn, may take the festival option once.
+                return TurnOrderFrom(State.BrennIndex).Select(s => State.Players[s].PlayerId);
             default:
                 return Enumerable.Empty<string>();
         }
@@ -158,6 +165,15 @@ public sealed partial class GameEngine
             case ReactionTrigger.AssemblySetAside:
                 if (reactor.PlayerId == frame.TargetPlayerId && reactor.Hand.Contains(CathbadsWord))
                     list.Add(CathbadsWord);
+                break;
+            case ReactionTrigger.SacredFestival:
+                if (State.CurrentSeason == Season.Winter
+                    && reactor.Hand.Any(c => Data.TryGetCard(c, out var wd) && wd.Type == CardType.Action))
+                    list.Add(FestivalSamhain);
+                if (State.CurrentSeason == Season.Autumn && reactor.ClanReserve > 0
+                    && reactor.Hand.Any(c => Data.TryGetCard(c, out var ad) && ad.Type == CardType.EpicTale)
+                    && State.Territories.Values.Any(t => t.IsPresent(reactor.Color)))
+                    list.Add(FestivalLugnasad);
                 break;
             case ReactionTrigger.CardFollowUp:
                 // The follow-up "reaction" is the trigger card's own continuation — the targeted
@@ -274,6 +290,9 @@ public sealed partial class GameEngine
                 break;
             case ReactionContinuation.FinishAssemblyDeal:
                 FinishAssemblyDeal();
+                break;
+            case ReactionContinuation.BeginSeason:
+                FinishSacredFestivals();
                 break;
         }
     }
@@ -499,6 +518,40 @@ public sealed partial class GameEngine
                 Emit("ReactionPlayed", reactor.PlayerId, CathbadsWord);
                 State.ReactionStack.Remove(frame);
                 RunContinuation(frame);
+                break;
+            }
+
+            case FestivalSamhain:
+            {
+                // Winter: trade an Action card for an Epic Tale by the fire.
+                var discard = move.CardIds?.FirstOrDefault(c =>
+                        reactor.Hand.Contains(c) && Data.TryGetCard(c, out var d) && d.Type == CardType.Action)
+                    ?? reactor.Hand.First(c => Data.TryGetCard(c, out var d) && d.Type == CardType.Action);
+                reactor.Hand.Remove(discard);
+                State.ActionDiscard.Add(discard);
+                DrawEpic(reactor);
+                Emit("Festival", reactor.PlayerId, discard, Detail: "Samhain");
+                frame.Cursor++; // one option per player
+                AdvanceOrCloseWindow(frame);
+                break;
+            }
+
+            case FestivalLugnasad:
+            {
+                // Autumn: discard Epic Tales to muster that many clans where present.
+                var epics = (move.CardIds ?? Array.Empty<string>())
+                    .Where(c => reactor.Hand.Contains(c) && Data.TryGetCard(c, out var d) && d.Type == CardType.EpicTale)
+                    .Distinct().ToList();
+                if (epics.Count == 0)
+                    epics.Add(reactor.Hand.First(c => Data.TryGetCard(c, out var d) && d.Type == CardType.EpicTale));
+                foreach (var c in epics) { reactor.Hand.Remove(c); State.EpicDiscard.Add(c); }
+                var t = Territory(move.TerritoryId);
+                if (t is null || !t.IsPresent(reactor.Color))
+                    t = State.Territories.Values.First(x => x.IsPresent(reactor.Color));
+                PlaceClans(reactor, t, epics.Count);
+                Emit("Festival", reactor.PlayerId, Detail: "Lugnasad");
+                frame.Cursor++; // one option per player
+                AdvanceOrCloseWindow(frame);
                 break;
             }
 

@@ -21,5 +21,13 @@
   { "id": "territory.hills",        "name": "Hills",               "terrain": "Plains",   "advantageCardId": "advantage.hills",        "verified": true, "art": "tiles/hills.svg" },
   { "id": "territory.valley",       "name": "Valley",              "terrain": "Plains",   "advantageCardId": "advantage.valley",       "verified": true, "art": "tiles/valley.svg" },
   { "id": "territory.plains",       "name": "Plains",              "terrain": "Plains",   "advantageCardId": "advantage.plains",       "verified": true, "art": "tiles/plains.svg" },
-  { "id": "territory.moor",         "name": "Moor",                "terrain": "Bog",      "advantageCardId": "advantage.moor",         "verified": true, "art": "tiles/moor.svg" }
+  { "id": "territory.moor",         "name": "Moor",                "terrain": "Bog",      "advantageCardId": "advantage.moor",         "verified": true, "art": "tiles/moor.svg" },
+
+  // ===== Seasons of Inis — 6 new territories (islands have blue edges; sea travel only) =====
+  { "id": "territory.aber",          "name": "Aber",           "terrain": "Coast", "advantageCardId": "advantage.aber",          "expansion": "Seasons of Inis", "verified": true,  "art": "tiles/aber.svg" },
+  { "id": "territory.hy_brasil",     "name": "Hy Brasil",      "terrain": "Coast", "advantageCardId": "advantage.hy_brasil",     "expansion": "Seasons of Inis", "island": true, "verified": true,  "art": "tiles/hy_brasil.svg" },
+  { "id": "territory.isle_of_joy",   "name": "Isle of Joy",    "terrain": "Coast", "advantageCardId": "advantage.isle_of_joy",   "expansion": "Seasons of Inis", "island": true, "verified": true,  "art": "tiles/isle_of_joy.svg" },
+  { "id": "territory.inis_mona",     "name": "Inis Mona",      "terrain": "Coast", "advantageCardId": "advantage.inis_mona",     "expansion": "Seasons of Inis", "island": true, "verified": true,  "art": "tiles/inis_mona.svg" },
+  { "id": "territory.tir_fo_thuinn", "name": "Tir fo Thuinn",  "terrain": "Coast", "advantageCardId": "advantage.tir_fo_thuinn", "expansion": "Seasons of Inis", "island": true, "verified": false, "art": "tiles/tir_fo_thuinn.svg" },
+  { "id": "territory.mag_mell",      "name": "Mag Mell",       "terrain": "Coast", "advantageCardId": "advantage.mag_mell",      "expansion": "Seasons of Inis", "island": true, "verified": false, "art": "tiles/mag_mell.svg" }
 ]

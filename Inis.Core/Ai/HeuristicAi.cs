@@ -116,6 +116,19 @@ public static class HeuristicAi
                 case "epic.cathbads_word":
                     break;
 
+                // Samhain: trade a spare Action card for an Epic Tale (keep at least one).
+                case "festival.samhain":
+                {
+                    var actions = me.Hand.Where(x =>
+                        e.Data.TryGetCard(x, out var d) && d.Type == CardType.Action).ToList();
+                    if (actions.Count >= 2) return m with { CardIds = new[] { actions[^1] } };
+                    break;
+                }
+
+                // Lugnasad: epics in hand are usually worth more than a single clan — hold.
+                case "festival.lugnasad":
+                    break;
+
                 // Pass the epic left and take a deed — always profitable.
                 case "action.master_craftsman":
                 {

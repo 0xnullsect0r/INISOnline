@@ -75,6 +75,9 @@ public sealed class GameState
     /// <summary>Fili: territory where clashes cannot start until the season ends; null otherwise.</summary>
     public string? FiliTerritoryId { get; set; }
 
+    /// <summary>Seasons of Inis: the season wheel's current position; null in base games.</summary>
+    public Season? CurrentSeason { get; set; }
+
     /// <summary>Open reaction (Triskel) windows, innermost last. Empty when nothing is interrupted.</summary>
     public List<ReactionFrame> ReactionStack { get; init; } = new();
 

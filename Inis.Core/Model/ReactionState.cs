@@ -27,6 +27,8 @@ public enum ReactionTrigger
     TurnEnded,
     /// <summary>The Assembly is about to set aside an Action card (Cathbad's Word chooses it).</summary>
     AssemblySetAside,
+    /// <summary>Seasons of Inis: the Assembly's Sacred Festivals step (per-player choices).</summary>
+    SacredFestival,
 }
 
 /// <summary>What the engine resumes once a reaction window closes.</summary>
@@ -52,6 +54,8 @@ public enum ReactionContinuation
     AdvanceTurn,
     /// <summary>Finish the Assembly deal (after the set-aside window).</summary>
     FinishAssemblyDeal,
+    /// <summary>Begin the Season phase (after the Sacred Festivals window).</summary>
+    BeginSeason,
 }
 
 /// <summary>

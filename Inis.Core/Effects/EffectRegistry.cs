@@ -80,6 +80,14 @@ public static class EffectRegistry
             ["advantage.plains"] = Plains,
             ["advantage.moor"] = NoOp, // information-only (look at a hand); client feature
 
+            // Seasons of Inis advantages (one per new territory).
+            ["advantage.aber"] = Aber,
+            ["advantage.hy_brasil"] = NoOp, // passive: +1 Deed at the victory check (VictoryEvaluator)
+            ["advantage.isle_of_joy"] = NoOp,   // effect pending confirmation
+            ["advantage.inis_mona"] = NoOp,     // effect pending confirmation
+            ["advantage.tir_fo_thuinn"] = NoOp, // effect pending confirmation
+            ["advantage.mag_mell"] = NoOp,      // effect pending confirmation
+
             // ----- Epic Tales (played as a Season card) -----
             ["epic.balors_eye"] = BalorsEye,
             ["epic.stone_of_fal"] = StoneOfFal,
@@ -156,7 +164,7 @@ public static class EffectRegistry
     {
         var from = e.Territory(m.FromTerritoryId);
         var to = e.Territory(m.ToTerritoryId ?? m.TerritoryId);
-        if (from is null || to is null || !to.Adjacent.Contains(from.InstanceId)) return;
+        if (from is null || to is null || !e.AreConnected(from, to)) return;
         e.MoveClans(p, from, to, m.Amount > 0 ? m.Amount : from.ClansOf(p.Color));
     }
 
@@ -164,7 +172,7 @@ public static class EffectRegistry
     {
         var from = e.Territory(m.FromTerritoryId ?? m.TerritoryId);
         var to = e.Territory(m.ToTerritoryId);
-        if (from is null || to is null || !from.Adjacent.Contains(to.InstanceId)) return;
+        if (from is null || to is null || !e.AreConnected(from, to)) return;
         e.MoveClans(p, from, to, m.Amount > 0 ? m.Amount : from.ClansOf(p.Color));
     }
 
@@ -187,21 +195,44 @@ public static class EffectRegistry
 
     private static void Exploration(GameEngine e, PlayerState p, CardDefinition c, Move m)
     {
+        var inst = DrawAndPlaceTerritory(e, m);
+        if (inst is not null) e.PlaceClans(p, inst, 1);
+    }
+
+    /// <summary>
+    /// Draws the next unused territory tile and places it: mainland tiles touch two existing
+    /// territories; islands (Sea Travels) go out at sea with a Harbour and no neighbours.
+    /// </summary>
+    private static TerritoryState? DrawAndPlaceTerritory(GameEngine e, Move m)
+    {
         var anchor = e.Territory(m.TerritoryId) ?? e.State.Territories.Values.FirstOrDefault();
-        if (anchor is null) return;
+        if (anchor is null) return null;
+        var seasons = e.State.Options.SeasonsOfInis;
         var inPlay = e.State.Territories.Values.Select(t => t.DefinitionId).ToHashSet();
-        var nextDef = e.Data.Territories.FirstOrDefault(d => !inPlay.Contains(d.Id));
-        if (nextDef is null) return;
+        var pool = e.Data.Territories
+            .Where(d => !inPlay.Contains(d.Id) && (d.Expansion is null || seasons) && (!d.Island || seasons));
+        var nextDef = (m.CardIds is { Count: > 0 } picks ? pool.FirstOrDefault(d => picks.Contains(d.Id)) : null)
+            ?? pool.FirstOrDefault();
+        if (nextDef is null) return null;
 
         var inst = new TerritoryState { InstanceId = $"T{e.State.Territories.Count}", DefinitionId = nextDef.Id };
         e.State.Territories[inst.InstanceId] = inst;
+        if (nextDef.Island)
+        {
+            // Islands touch nothing; their Harbour is the only way on or off.
+            inst.HasHarbour = true;
+            return inst;
+        }
         inst.Adjacent.Add(anchor.InstanceId);
         anchor.Adjacent.Add(inst.InstanceId);
         // Touch a second existing territory to satisfy the "adjacent to two" rule when possible.
-        var second = e.State.Territories.Values.FirstOrDefault(t => t != inst && t != anchor);
+        var second = e.State.Territories.Values.FirstOrDefault(t => t != inst && t != anchor && !IsIsland(e, t));
         if (second is not null) { inst.Adjacent.Add(second.InstanceId); second.Adjacent.Add(inst.InstanceId); }
-        e.PlaceClans(p, inst, 1);
+        return inst;
     }
+
+    private static bool IsIsland(GameEngine e, TerritoryState t)
+        => e.Data.Territories.FirstOrDefault(d => d.Id == t.DefinitionId)?.Island == true;
 
     private static void NewAlliance(GameEngine e, PlayerState p, CardDefinition c, Move m)
     {
@@ -218,7 +249,7 @@ public static class EffectRegistry
         // The "look at a hand" part is information only; the optional move is modeled.
         var from = e.Territory(m.FromTerritoryId);
         var to = e.Territory(m.ToTerritoryId);
-        if (from is not null && to is not null && from.Adjacent.Contains(to.InstanceId))
+        if (from is not null && to is not null && e.AreConnected(from, to))
             e.MoveClans(p, from, to, m.Amount > 0 ? m.Amount : 1);
     }
 
@@ -241,7 +272,7 @@ public static class EffectRegistry
     {
         var from = e.Territory(m.FromTerritoryId);
         var to = e.Territory(m.ToTerritoryId);
-        if (from is null || to is null || !from.Adjacent.Contains(to.InstanceId)) return;
+        if (from is null || to is null || !e.AreConnected(from, to)) return;
         // Emissaries move does not start a clash, so place rather than move into contention.
         var n = Math.Min(1, from.ClansOf(p.Color));
         if (n <= 0) return;
@@ -268,7 +299,7 @@ public static class EffectRegistry
     {
         var from = e.Territory(m.FromTerritoryId ?? m.TerritoryId);
         var to = e.Territory(m.ToTerritoryId);
-        if (from is null || to is null || !from.Adjacent.Contains(to.InstanceId)) return;
+        if (from is null || to is null || !e.AreConnected(from, to)) return;
         if (!from.IsPresent(p.Color) || from.Clans.Count(kv => kv.Value > 0) < 2) return; // must be shared
 
         // Move the player's clans first; the clash check waits for the partner's answer.
@@ -348,8 +379,8 @@ public static class EffectRegistry
         var from = e.State.Territories.Values.FirstOrDefault(t => t.DefinitionId == c.TerritoryId);
         if (from is null || from.ClansOf(p.Color) <= 0) return;
         var to = e.Territory(m.ToTerritoryId);
-        if (to is null || !from.Adjacent.Contains(to.InstanceId))
-            to = from.Adjacent.Select(id => e.State.Territories[id]).FirstOrDefault();
+        if (to is null || !e.AreConnected(from, to))
+            to = e.State.Territories.Values.FirstOrDefault(x => e.AreConnected(from, x));
         if (to is null) return;
         e.MoveClans(p, from, to, m.Amount > 0 ? m.Amount : 1);
     }
@@ -392,6 +423,18 @@ public static class EffectRegistry
         if (from.ClansOf(color) <= 0) return;
         from.AddClans(color, -1);
         vale.AddClans(color, 1); // the Lost Vale swallows the clan peacefully — no clash
+    }
+
+    private static void Aber(GameEngine e, PlayerState p, CardDefinition c, Move m)
+    {
+        // Move one of your clans between two territories that both touch the Aber.
+        var aber = e.State.Territories.Values.FirstOrDefault(t => t.DefinitionId == c.TerritoryId);
+        if (aber is null) return;
+        var from = e.Territory(m.FromTerritoryId);
+        var to = e.Territory(m.ToTerritoryId);
+        if (from is null || !aber.Adjacent.Contains(from.InstanceId)) return;
+        if (to is null || !aber.Adjacent.Contains(to.InstanceId) || to == from) return;
+        e.MoveClans(p, from, to, 1);
     }
 
     private static bool IsAction(GameEngine e, string cardId)
@@ -457,21 +500,7 @@ public static class EffectRegistry
     private static void TailtusLand(GameEngine e, PlayerState p, CardDefinition c, Move m)
     {
         // Like Exploration, but no clan is placed on the new tile.
-        var anchor = e.Territory(m.TerritoryId) ?? e.State.Territories.Values.FirstOrDefault();
-        if (anchor is null) return;
-        var inPlay = e.State.Territories.Values.Select(t => t.DefinitionId).ToHashSet();
-        var nextDef = (m.CardIds is { Count: > 0 } picks
-                ? e.Data.Territories.FirstOrDefault(d => picks.Contains(d.Id) && !inPlay.Contains(d.Id))
-                : null)
-            ?? e.Data.Territories.FirstOrDefault(d => !inPlay.Contains(d.Id));
-        if (nextDef is null) return;
-
-        var inst = new TerritoryState { InstanceId = $"T{e.State.Territories.Count}", DefinitionId = nextDef.Id };
-        e.State.Territories[inst.InstanceId] = inst;
-        inst.Adjacent.Add(anchor.InstanceId);
-        anchor.Adjacent.Add(inst.InstanceId);
-        var second = e.State.Territories.Values.FirstOrDefault(t => t != inst && t != anchor);
-        if (second is not null) { inst.Adjacent.Add(second.InstanceId); second.Adjacent.Add(inst.InstanceId); }
+        DrawAndPlaceTerritory(e, m);
     }
 
     private static void BreasTyranny(GameEngine e, PlayerState p, CardDefinition c, Move m)
@@ -482,8 +511,8 @@ public static class EffectRegistry
             ?? t.Clans.Where(kv => kv.Key != p.Color && kv.Value > 0).Select(kv => (ClanColor?)kv.Key).FirstOrDefault();
         if (victim is not { } col || col == p.Color || t.ClansOf(col) <= 0) return;
         var dest = e.Territory(m.ToTerritoryId);
-        if (dest is null || !t.Adjacent.Contains(dest.InstanceId))
-            dest = t.Adjacent.Select(id => e.State.Territories[id]).FirstOrDefault();
+        if (dest is null || !e.AreConnected(t, dest))
+            dest = e.State.Territories.Values.FirstOrDefault(x => e.AreConnected(t, x));
         if (dest is null) return;
         t.AddClans(col, -1);
         dest.AddClans(col, 1); // driven out, not into battle — no clash
@@ -567,7 +596,7 @@ public static class EffectRegistry
         var to = e.Territory(m.ToTerritoryId ?? m.TerritoryId);
         var from = e.Territory(m.FromTerritoryId);
         if (to is null) return;
-        if (from is not null && from.Adjacent.Contains(to.InstanceId))
+        if (from is not null && e.AreConnected(from, to))
             e.MoveClans(p, from, to, m.Amount > 0 ? m.Amount : 1);
         else if (t_present(to, p)) e.PlaceClans(p, to, m.Amount > 0 ? m.Amount : 1);
 

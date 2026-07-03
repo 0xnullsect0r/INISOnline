@@ -54,6 +54,7 @@ public sealed partial class GameEngine
             });
 
         var engine = new GameEngine(state, data);
+        if (options.SeasonsOfInis) state.CurrentSeason = (Season)engine._rng.Next(4);
         engine.BuildEpicDeck();
         engine.SetupBoard(seats.Count);
         engine.BeginAssembly();
@@ -74,7 +75,10 @@ public sealed partial class GameEngine
     private void SetupBoard(int playerCount)
     {
         // Initial tiles: one per player, placed in a ring so each touches two others.
-        var tilePool = Data.Territories.Select(t => t.Id).ToList();
+        // Islands never appear in the starting ring, and expansion tiles need the expansion.
+        var tilePool = Data.Territories
+            .Where(t => !t.Island && (t.Expansion is null || State.Options.SeasonsOfInis))
+            .Select(t => t.Id).ToList();
         _rng.Shuffle(tilePool);
         var placed = new List<TerritoryState>();
         for (var i = 0; i < playerCount; i++)
@@ -100,6 +104,8 @@ public sealed partial class GameEngine
         State.CitadelsRemaining--;            // the Capital is one of the 10 Citadels
         capital.Sanctuaries++;
         State.SanctuariesRemaining--;
+        // Sea Travels: the Capital always receives a Harbour tile.
+        if (State.Options.SeasonsOfInis) capital.HasHarbour = true;
 
         State.BrennIndex = _rng.Next(playerCount);
         State.Direction = _rng.Next(2) == 0 ? TurnDirection.Clockwise : TurnDirection.CounterClockwise;
@@ -377,9 +383,58 @@ public sealed partial class GameEngine
             return;
         }
 
-        // Draft complete: drafted action cards go into hands; begin the Season.
+        // Draft complete: drafted action cards go into hands; festivals, then the Season.
         for (var i = 0; i < n; i++) State.Players[i].Hand.AddRange(d.Accumulated[i]);
         State.Draft = null;
+        ApplySacredFestivals();
+    }
+
+    /// <summary>
+    /// Seasons of Inis, Assembly step 7 — the Sacred Festivals. Spring resolves
+    /// automatically; Winter and Autumn open a per-player choice window.
+    /// </summary>
+    private void ApplySacredFestivals()
+    {
+        switch (State.CurrentSeason)
+        {
+            case Season.Spring:
+            {
+                // Imbolc: the player(s) with the fewest cards in hand muster one clan.
+                var fewest = State.Players.Min(p => p.Hand.Count);
+                foreach (var p in State.Players.Where(p => p.Hand.Count == fewest))
+                {
+                    var t = State.Territories.Values.Where(x => x.IsPresent(p.Color))
+                        .OrderBy(x => x.ClansOf(p.Color)).ThenBy(x => x.InstanceId).FirstOrDefault();
+                    if (t is not null) PlaceClans(p, t, 1);
+                }
+                break;
+            }
+            case Season.Winter:
+            case Season.Autumn:
+                if (TryOpenReactionWindow(new ReactionFrame
+                    {
+                        Trigger = ReactionTrigger.SacredFestival,
+                        Continuation = ReactionContinuation.BeginSeason,
+                    }))
+                    return;
+                break;
+        }
+        FinishSacredFestivals();
+    }
+
+    private void FinishSacredFestivals()
+    {
+        // Lugnasad: no more than three Epic Tales may be carried into the new Season.
+        if (State.CurrentSeason == Season.Autumn)
+            foreach (var p in State.Players)
+            {
+                var epics = p.Hand.Where(c => Data.TryGetCard(c, out var d) && d.Type == CardType.EpicTale).ToList();
+                foreach (var extra in epics.Take(Math.Max(0, epics.Count - 3)))
+                {
+                    p.Hand.Remove(extra);
+                    State.EpicDiscard.Add(extra);
+                }
+            }
         BeginSeason();
     }
 
@@ -442,6 +497,8 @@ public sealed partial class GameEngine
         }
         foreach (var t in State.Territories.Values) t.HasFestival = false;
         State.FiliTerritoryId = null; // the Fili token comes off when the season ends
+        // Seasons of Inis: the marker moves to the next season on the wheel.
+        if (State.CurrentSeason is { } season) State.CurrentSeason = (Season)(((int)season + 1) % 4);
         State.RoundNumber++;
         BeginAssembly();
     }
@@ -520,6 +577,28 @@ public sealed partial class GameEngine
             case MoveType.PlayCard:
                 PlayCard(player, move);
                 break;
+
+            case MoveType.SummerMove:
+            {
+                // Beltane: discard an Action card to move up to three clans instead of playing.
+                Require(State.CurrentSeason == Season.Summer, "The Summer move is only available in Summer.");
+                Require(!(player == State.Brenn && !State.BrennHasOpened), "The Brenn must open the Season.");
+                var discard = move.CardIds?.FirstOrDefault(c =>
+                        player.Hand.Contains(c) && Data.TryGetCard(c, out var d) && d.Type == CardType.Action)
+                    ?? FirstActionCard(player);
+                Require(discard is not null, "The Summer move needs an Action card to discard.");
+                var from = Territory(move.FromTerritoryId);
+                var to = Territory(move.ToTerritoryId);
+                Require(from is not null && to is not null && AreConnected(from, to!), "Invalid Summer move route.");
+                player.Hand.Remove(discard!);
+                State.ActionDiscard.Add(discard!);
+                State.ConsecutivePasses = 0;
+                Emit("SummerMove", player.PlayerId, discard);
+                MoveClans(player, from!, to!, Math.Min(move.Amount > 0 ? move.Amount : 3, 3));
+                if (State.ActiveClash is not null) return;
+                AdvanceSeasonTurn();
+                break;
+            }
 
             case MoveType.Resign:
                 player.HasPassed = true;
@@ -671,9 +750,29 @@ public sealed partial class GameEngine
         Emit("BuildingPlaced", TerritoryId: territory.InstanceId, Detail: "Sanctuary");
     }
 
+    /// <summary>
+    /// True when clans can move between the two territories: land adjacency, or — with the
+    /// Sea Travels module — by sea between two Harbours. The single choke point for every
+    /// movement legality check, so sea routes apply to all card movement for free.
+    /// </summary>
+    public bool AreConnected(TerritoryState from, TerritoryState to)
+        => from != to
+           && (from.Adjacent.Contains(to.InstanceId)
+               || (State.Options.SeasonsOfInis && from.HasHarbour && to.HasHarbour));
+
+    /// <summary>Places a Harbour tile (Sea Travels); territories hold at most one.</summary>
+    public void BuildHarbour(TerritoryState territory)
+    {
+        if (territory.HasHarbour) return;
+        territory.HasHarbour = true;
+        Emit("BuildingPlaced", TerritoryId: territory.InstanceId, Detail: "Harbour");
+    }
+
     /// <summary>Moves clans between territories; starts a clash if opponents are present at the destination.</summary>
     public void MoveClans(PlayerState player, TerritoryState from, TerritoryState to, int amount)
     {
+        // Samhain: in Winter no more than three clans may march together.
+        if (State.CurrentSeason == Season.Winter) amount = Math.Min(amount, 3);
         amount = Math.Min(amount, from.ClansOf(player.Color));
         if (amount <= 0) return;
         from.AddClans(player.Color, -amount);
@@ -926,8 +1025,8 @@ public sealed partial class GameEngine
                 {
                     // Move own clans (sheltered or exposed) out to an adjacent territory, no clash.
                     var dest = Territory(move.ToTerritoryId);
-                    if (dest is null || !territory.Adjacent.Contains(dest.InstanceId))
-                        dest = territory.Adjacent.Select(id => State.Territories[id]).FirstOrDefault();
+                    if (dest is null || !AreConnected(territory, dest))
+                        dest = State.Territories.Values.FirstOrDefault(t => AreConnected(territory, t));
                     Require(dest is not null, "The Fianna needs an adjacent destination.");
                     var own = territory.ClansOf(player.Color);
                     var n = Math.Min(move.Amount > 0 ? move.Amount : own, own);
@@ -1065,6 +1164,9 @@ public sealed partial class GameEngine
                     list.Add(Move.Pass(player.PlayerId));
                     if (!player.HasPretenderToken && State.PretendersRemaining > 0 && VictoryEvaluator.MeetsAny(State, player))
                         list.Add(new Move { Type = MoveType.TakePretender, PlayerId = player.PlayerId });
+                    if (State.CurrentSeason == Season.Summer && HasPlayableActionCard(player)
+                        && State.Territories.Values.Any(t => t.IsPresent(player.Color)))
+                        list.Add(new Move { Type = MoveType.SummerMove, PlayerId = player.PlayerId });
                 }
                 break;
 
@@ -1090,8 +1192,8 @@ public sealed partial class GameEngine
                         list.Add(new Move { Type = MoveType.PlayCard, PlayerId = player.PlayerId, CardId = TaleOfCuchulain });
                     if (player.Hand.Contains(OgmasEloquence))
                         list.Add(new Move { Type = MoveType.PlayCard, PlayerId = player.PlayerId, CardId = OgmasEloquence });
-                    if (player.Hand.Contains(TheFianna) && territory.Adjacent.Count > 0
-                        && territory.ClansOf(player.Color) > 0)
+                    if (player.Hand.Contains(TheFianna) && territory.ClansOf(player.Color) > 0
+                        && State.Territories.Values.Any(t => AreConnected(territory, t)))
                         list.Add(new Move { Type = MoveType.PlayCard, PlayerId = player.PlayerId, CardId = TheFianna });
                 }
                 break;
@@ -1117,8 +1219,8 @@ public sealed partial class GameEngine
     // ----------------------------------------------------------- small helpers
 
     private List<TerritoryState> AdjacentChieftainTerritories(PlayerState player, TerritoryState from)
-        => from.Adjacent.Select(id => State.Territories[id])
-            .Where(t => t.Chieftain() == player.Color).ToList();
+        => State.Territories.Values
+            .Where(t => AreConnected(from, t) && t.Chieftain() == player.Color).ToList();
 
     private bool HasPlayableActionCard(PlayerState p)
         => p.Hand.Any(c => Data.TryGetCard(c, out var d) && d.Type == CardType.Action);

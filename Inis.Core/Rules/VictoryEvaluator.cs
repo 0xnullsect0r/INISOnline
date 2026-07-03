@@ -19,7 +19,7 @@ public static class VictoryEvaluator
 
     public static IReadOnlyList<VictoryProgress> Evaluate(GameState state, PlayerState player)
     {
-        var deeds = player.Deeds;
+        var deeds = EffectiveDeeds(player);
         return new[]
         {
             Progress(VictoryCondition.Leadership, LeadershipValue(state, player.Color), deeds),
@@ -46,7 +46,7 @@ public static class VictoryEvaluator
             Math.Max(0, Threshold - ReligionValue(state, player.Color)),
         }.OrderBy(s => s).ToArray();
 
-        var deeds = player.Deeds;
+        var deeds = EffectiveDeeds(player);
         var met = 0;
         foreach (var need in shortfalls)
         {
@@ -55,6 +55,10 @@ public static class VictoryEvaluator
         }
         return met;
     }
+
+    /// <summary>Deeds available at the victory check; Hy Brasil's advantage counts as one.</summary>
+    private static int EffectiveDeeds(PlayerState player)
+        => player.Deeds + (player.Advantages.Contains("advantage.hy_brasil") ? 1 : 0);
 
     private static VictoryProgress Progress(VictoryCondition condition, int rawValue, int deeds)
     {

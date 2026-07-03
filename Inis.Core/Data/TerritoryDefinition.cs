@@ -22,6 +22,15 @@ public sealed record TerritoryDefinition
     /// <summary>True if this tile carries a sanctuary at game start.</summary>
     public bool StartsWithSanctuary { get; init; }
 
+    /// <summary>Expansion this tile belongs to (e.g. "Seasons of Inis"); null for base game.</summary>
+    public string? Expansion { get; init; }
+
+    /// <summary>
+    /// Seasons of Inis: islands sit out at sea, are never adjacent to other territories,
+    /// and are reached only by sea travel between Harbours.
+    /// </summary>
+    public bool Island { get; init; }
+
     /// <summary>Relative path (under assets) to the tile art.</summary>
     public string? Art { get; init; }
 

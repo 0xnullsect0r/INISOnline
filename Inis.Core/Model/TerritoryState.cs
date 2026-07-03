@@ -19,6 +19,9 @@ public sealed class TerritoryState
     /// <summary>True while the Festival marker sits here (set by the Festival Action card).</summary>
     public bool HasFestival { get; set; }
 
+    /// <summary>Seasons of Inis: a Harbour tile here connects this territory by sea.</summary>
+    public bool HasHarbour { get; set; }
+
     /// <summary>Total Citadels here, including the Capital's (which functions as a Citadel).</summary>
     public int TotalCitadels => Citadels + (HasCapital ? 1 : 0);
 

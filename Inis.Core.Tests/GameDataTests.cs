@@ -27,9 +27,12 @@ public class GameDataTests
         var data = GameData.Default;
         int Total(CardType t) => data.Cards.Where(c => c.Type == t).Sum(c => c.Count);
 
-        Assert.Equal(16, data.Territories.Count);
+        // Base game: 16 territories/advantages; Seasons of Inis adds 6 more of each.
+        Assert.Equal(16, data.Territories.Count(t => t.Expansion is null));
+        Assert.Equal(22, data.Territories.Count);
         Assert.Equal(23, Total(CardType.Action));
-        Assert.Equal(16, Total(CardType.Advantage));
+        Assert.Equal(16, data.Cards.Count(c => c.Type == CardType.Advantage && c.Expansion is null));
+        Assert.Equal(22, Total(CardType.Advantage));
         Assert.Equal(30, Total(CardType.EpicTale));
     }
 
