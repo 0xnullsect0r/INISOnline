@@ -64,6 +64,36 @@ public class AiSimulationTests
         Assert.Equal(a.State.IntentLog, b.State.IntentLog);
     }
 
+    /// <summary>Every card with reactive (Triskel) behaviour, plus the assembly/turn hooks.</summary>
+    private static readonly string[] ReactiveCards =
+    {
+        "action.geis", "action.warlord", "action.bard", "action.raid", "action.master_craftsman",
+        "epic.lug_samildanach", "epic.lugs_spear", "epic.tale_of_cuchulain", "epic.ogmas_eloquence",
+        "epic.the_fianna", "epic.the_dagda", "epic.battle_frenzy", "epic.dagdas_club",
+        "epic.dagdas_cauldron", "epic.diarmuid_grainne", "epic.strengs_resolve",
+        "epic.oengus_ploy", "epic.cathbads_word",
+    };
+
+    [Fact]
+    public void Triskel_Stacked_Games_Never_Deadlock()
+    {
+        // Force reaction windows to open constantly: every reactive card is dealt out
+        // round-robin at the start, then the AI plays to the end. The step invariant
+        // (someone always has a legal move) is the deadlock guard.
+        for (var seed = 0; seed < 25; seed++)
+        {
+            var engine = GameEngine.Create("g", seed, Seats(3));
+            for (var i = 0; i < ReactiveCards.Length; i++)
+                Debug.DebugCommandApi.Apply(engine, new Moves.Move
+                {
+                    Type = MoveType.Debug, DebugCommand = "grant",
+                    PlayerId = $"p{i % 3}", CardId = ReactiveCards[i],
+                });
+            AiRunner.PlayToEnd(engine, maxMoves: 6000, onStep: AssertInvariants);
+            AssertInvariants(engine);
+        }
+    }
+
     [Fact]
     public void Some_Games_Reach_A_Winner()
     {

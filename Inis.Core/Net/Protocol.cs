@@ -8,7 +8,12 @@ namespace Inis.Core.Net;
 /// <summary>Protocol-level constants shared by host and client (see docs/protocol.md).</summary>
 public static class Protocol
 {
-    public const int Version = 1;
+    /// <summary>
+    /// Wire version. v2 added the reaction (Triskel) windows, the Seasons of Inis
+    /// subsystems and their enum members — v1 peers would crash on the new names, so
+    /// hosts reject any envelope whose version does not match.
+    /// </summary>
+    public const int Version = 2;
 
     // Host -> client message types.
     public const string Hello = "Hello";

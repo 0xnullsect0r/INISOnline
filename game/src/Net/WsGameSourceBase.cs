@@ -103,6 +103,11 @@ public abstract class WsGameSourceBase : IGameSource
     {
         var env = Envelope.TryParse(json);
         if (env is null) return false;
+        if (env.V != Protocol.Version)
+        {
+            AppendLog($"⚠ Host speaks protocol v{env.V}, this client v{Protocol.Version} — please update.");
+            return true;
+        }
         switch (env.Type)
         {
             case Protocol.Hello:

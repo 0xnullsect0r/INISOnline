@@ -120,6 +120,12 @@ public sealed class GameSession
         LastActivityUtc = DateTimeOffset.UtcNow;
         var env = Envelope.TryParse(json);
         if (env is null) { await SendAsync(conn, ServerMessages.Error("bad_envelope", "Malformed message."), ct); return; }
+        if (env.V != Protocol.Version)
+        {
+            await SendAsync(conn, ServerMessages.Error("version_mismatch",
+                $"Protocol v{env.V} is not supported; this host speaks v{Protocol.Version}. Please update."), ct);
+            return;
+        }
 
         if (env.Type == Protocol.Chat)
         {

@@ -141,6 +141,12 @@ public partial class LanHost : Node
     {
         var env = Envelope.TryParse(json);
         if (env is null) return;
+        if (env.V != Protocol.Version)
+        {
+            SendTo(conn, ServerMessages.Error("version_mismatch",
+                $"Protocol v{env.V} is not supported; this host speaks v{Protocol.Version}. Please update."));
+            return;
+        }
 
         if (env.Type == Protocol.Join)
         {
