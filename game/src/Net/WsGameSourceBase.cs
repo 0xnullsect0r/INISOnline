@@ -83,6 +83,20 @@ public abstract class WsGameSourceBase : IGameSource
         _legal = Array.Empty<Move>(); // wait for the host's authoritative response
     }
 
+    public string? LocalPlayerId => IsSpectator ? null : MyPlayerId;
+    public bool SupportsChat => true;
+
+    public void SendChat(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return;
+        SendRaw(JsonSerializer.Serialize(new
+        {
+            v = Protocol.Version,
+            type = Protocol.Chat,
+            payload = new { text = text.Trim() },
+        }, InisJson.Options));
+    }
+
     public void Debug(string command, string? cardId, int amount) =>
         SendRaw(JsonSerializer.Serialize(new
         {

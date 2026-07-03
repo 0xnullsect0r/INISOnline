@@ -59,6 +59,11 @@ public sealed class LocalGame : IGameSource
 
     public void Submit(Move move) => Record(_engine.Apply(move));
 
+    // Hotseat: the local player is whichever human must act right now.
+    public string? LocalPlayerId => CanLocalAct ? Pending?.PlayerId : null;
+    public bool SupportsChat => false;
+    public void SendChat(string text) { /* everyone shares a couch offline */ }
+
     public void Debug(string command, string? cardId, int amount)
     {
         var pid = Pending?.PlayerId;

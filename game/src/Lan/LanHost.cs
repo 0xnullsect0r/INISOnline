@@ -66,6 +66,9 @@ public partial class LanHost : Node
     public GameEngine Engine => _engine!;
     public string? LocalHostPlayerId { get; private set; }
 
+    /// <summary>Host-side log of game events and chat, rendered by <see cref="LanHostGame"/>.</summary>
+    public List<string> HostLog { get; } = new();
+
     /// <summary>Starts the host on an OS-assigned port. Returns false if the socket fails.</summary>
     public bool Open(int capacity, bool seasons = false, bool extended = false)
     {
@@ -151,6 +154,12 @@ public partial class LanHost : Node
         if (env.Type == Protocol.Join)
         {
             AssignSeat(conn, env.PayloadAs<JoinPayload>()?.Name ?? "Player");
+            return;
+        }
+        if (env.Type == Protocol.Chat)
+        {
+            var text = env.PayloadAs<ChatPayload>()?.Text;
+            if (!string.IsNullOrWhiteSpace(text)) BroadcastChat(conn.PlayerId, text!.Trim());
             return;
         }
         if (!Started || conn.Spectator || conn.Seat < 0) return;
@@ -241,6 +250,7 @@ public partial class LanHost : Node
     {
         var events = new List<GameEvent>(_engine!.Apply(move));
         events.AddRange(DriveAi());
+        AppendHostLog(events);
         BroadcastAll(events);
         Version++;
     }
@@ -249,7 +259,32 @@ public partial class LanHost : Node
     {
         var all = new List<GameEvent>(events);
         all.AddRange(DriveAi());
+        AppendHostLog(all);
         BroadcastAll(all);
+        Version++;
+    }
+
+    private void AppendHostLog(IReadOnlyList<GameEvent> events)
+    {
+        foreach (var e in events) HostLog.Add(INISOnline.Game.MoveText.DescribeEvent(e, SeatDisplay, _data));
+        if (HostLog.Count > 200) HostLog.RemoveRange(0, HostLog.Count - 200);
+    }
+
+    private string SeatDisplay(string playerId) =>
+        _engine?.State.Players.Find(p => p.PlayerId == playerId)?.DisplayName ?? playerId;
+
+    /// <summary>Sends a chat line from the in-process host player.</summary>
+    public void HostChat(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return;
+        BroadcastChat(LocalHostPlayerId ?? "host", text.Trim());
+    }
+
+    private void BroadcastChat(string fromPlayerId, string text)
+    {
+        HostLog.Add($"{SeatDisplay(fromPlayerId)}: {text}");
+        foreach (var c in _conns.Where(c => c.Ws.GetReadyState() == WebSocketPeer.State.Open))
+            SendTo(c, ServerMessages.Chat(fromPlayerId, text));
         Version++;
     }
 
@@ -307,4 +342,5 @@ public partial class LanHost : Node
     }
 
     private sealed record JoinPayload(string Name);
+    private sealed record ChatPayload(string Text);
 }

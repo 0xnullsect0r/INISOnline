@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using INISOnline.Theme;
 using Inis.Core.Data;
@@ -102,10 +103,11 @@ public partial class BoardView : SubViewportContainer
 
     // --------------------------------------------------------------- board build
 
-    /// <summary>Builds tiles once, then refreshes pieces + highlights from the engine state.</summary>
+    /// <summary>Builds tiles (including any explored mid-game), then refreshes pieces + highlights.</summary>
     public void Sync(GameState state)
     {
         if (_tiles.Count == 0) BuildTiles(state);
+        else AddNewTiles(state);
         RefreshPieces(state);
     }
 
@@ -122,6 +124,27 @@ public partial class BoardView : SubViewportContainer
             var angle = Mathf.Tau * i / n;
             var pos = new Vector3(Mathf.Cos(angle) * ringRadius, 0, Mathf.Sin(angle) * ringRadius);
             _tiles[territory.InstanceId] = BuildTile(territory, pos);
+        }
+    }
+
+    /// <summary>Territories discovered mid-game (Exploration, Tailtu's Land) join the board.</summary>
+    private void AddNewTiles(GameState state)
+    {
+        foreach (var territory in state.Territories.Values)
+        {
+            if (_tiles.ContainsKey(territory.InstanceId)) continue;
+            var def = _data.Territory(territory.DefinitionId);
+            var index = _tiles.Count;
+            // Golden-angle spiral outside the initial ring; islands sit even further out at sea.
+            var angle = index * 2.39996f;
+            var radius = (def.Island ? 3.4f : 2.2f) + 1.1f * index / Mathf.Pi;
+            var pos = new Vector3(Mathf.Cos(angle) * radius, 0, Mathf.Sin(angle) * radius);
+            var tile = BuildTile(territory, pos);
+            _tiles[territory.InstanceId] = tile;
+            tile.Scale = new Vector3(0.05f, 0.05f, 0.05f);
+            var tween = CreateTween();
+            tween.SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+            tween.TweenProperty(tile, "scale", Vector3.One, 0.45f);
         }
     }
 
@@ -157,6 +180,8 @@ public partial class BoardView : SubViewportContainer
         return ResourceLoader.Exists(path) ? ResourceLoader.Load<Texture2D>(path) : null;
     }
 
+    private readonly Dictionary<string, string> _tileSignatures = new();
+
     private void RefreshPieces(GameState state)
     {
         foreach (var child in _pieces.GetChildren()) child.QueueFree();
@@ -166,34 +191,74 @@ public partial class BoardView : SubViewportContainer
             if (!_tiles.TryGetValue(id, out var tile)) continue;
             var basePos = tile.Position;
 
+            // Animate pieces only on tiles whose contents actually changed since last sync.
+            var signature = TileSignature(territory);
+            var changed = _tileSignatures.TryGetValue(id, out var prev) && prev != signature;
+            _tileSignatures[id] = signature;
+
             // Buildings sit at the back of the tile; clans cluster at the front.
             var slot = 0;
-            for (var s = 0; s < territory.Sanctuaries; s++) PlaceBuilding(MeshFactory.Sanctuary(), basePos, slot++);
-            if (territory.HasCapital) PlaceBuilding(MeshFactory.Capital(), basePos, slot++);
-            for (var c = 0; c < territory.Citadels; c++) PlaceBuilding(MeshFactory.Citadel(), basePos, slot++);
+            for (var s = 0; s < territory.Sanctuaries; s++) PlaceBuilding(MeshFactory.Sanctuary(), basePos, slot++, changed);
+            if (territory.HasCapital) PlaceBuilding(MeshFactory.Capital(), basePos, slot++, changed);
+            for (var c = 0; c < territory.Citadels; c++) PlaceBuilding(MeshFactory.Citadel(), basePos, slot++, changed);
+            if (territory.HasHarbour) PlaceHarbour(basePos);
 
             var clanIndex = 0;
             foreach (var (color, count) in territory.Clans)
                 for (var k = 0; k < count; k++)
-                    PlaceClan(Palette.Clan(color), basePos, clanIndex++);
+                    PlaceClan(Palette.Clan(color), basePos, clanIndex++, changed);
 
             HighlightTile(id, id == _selected);
         }
     }
 
-    private void PlaceClan(Color color, Vector3 tilePos, int index)
+    private static string TileSignature(TerritoryState t) =>
+        $"{t.Sanctuaries}:{t.Citadels}:{t.HasCapital}:{t.HasHarbour}:" +
+        string.Join(",", t.Clans.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key}={kv.Value}"));
+
+    private void PlaceClan(Color color, Vector3 tilePos, int index, bool animate = false)
     {
         var node = MeshFactory.Clan(color);
         var offset = ClusterOffset(index, 0.30f, forward: 0.35f);
         node.Position = new Vector3(tilePos.X + offset.X, MeshFactory.HexHeight / 2f + node.Position.Y, tilePos.Z + offset.Y);
         _pieces.AddChild(node);
+        if (animate) PopIn(node);
     }
 
-    private void PlaceBuilding(MeshInstance3D node, Vector3 tilePos, int slot)
+    private void PlaceBuilding(MeshInstance3D node, Vector3 tilePos, int slot, bool animate = false)
     {
         var offset = ClusterOffset(slot, 0.34f, forward: -0.4f);
         node.Position = new Vector3(tilePos.X + offset.X, MeshFactory.HexHeight / 2f + node.Position.Y, tilePos.Z + offset.Y);
         _pieces.AddChild(node);
+        if (animate) PopIn(node);
+    }
+
+    private void PlaceHarbour(Vector3 tilePos)
+    {
+        // A small azure pier disc at the tile's seaward edge marks a Harbour.
+        var mesh = new MeshInstance3D
+        {
+            Mesh = new CylinderMesh { TopRadius = 0.22f, BottomRadius = 0.22f, Height = 0.06f },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.35f, 0.65f, 0.8f),
+                EmissionEnabled = true,
+                Emission = new Color(0.2f, 0.45f, 0.6f),
+                EmissionEnergyMultiplier = 0.3f,
+            },
+            Position = new Vector3(tilePos.X + 0.72f, MeshFactory.HexHeight / 2f, tilePos.Z + 0.55f),
+        };
+        _pieces.AddChild(mesh);
+    }
+
+    /// <summary>A quick scale-in so changed tiles visibly gain/lose their pieces.</summary>
+    private void PopIn(Node3D node)
+    {
+        var target = node.Scale;
+        node.Scale = target * 0.4f;
+        var tween = CreateTween();
+        tween.SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(node, "scale", target, 0.22f);
     }
 
     private static Vector2 ClusterOffset(int index, float step, float forward)

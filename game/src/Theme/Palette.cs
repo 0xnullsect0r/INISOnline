@@ -32,16 +32,30 @@ public static class Palette
     public static readonly Color Danger = Color.FromHtml("A6432F");
 
     /// <summary>The per-player clan colours (base game uses Red/Blue/Green/Yellow).</summary>
-    public static Color Clan(ClanColor color) => color switch
-    {
-        ClanColor.Red => Color.FromHtml("B23A33"),
-        ClanColor.Blue => Color.FromHtml("2E5E8C"),
-        ClanColor.Green => Color.FromHtml("3E7D4F"),
-        ClanColor.Yellow => Color.FromHtml("C9A227"),
-        ClanColor.White => Color.FromHtml("E8E4D8"),
-        ClanColor.Purple => Color.FromHtml("7E4B8E"),
-        ClanColor.Orange => Color.FromHtml("CC6B2C"),
-        ClanColor.Teal => Color.FromHtml("2E8B8B"),
-        _ => Cream,
-    };
+    public static Color Clan(ClanColor color) => INISOnline.Audio.Settings.ColorblindClans
+        ? color switch
+        {
+            // Okabe–Ito inspired palette: distinguishable under the common dichromacies.
+            ClanColor.Red => Color.FromHtml("D55E00"),    // vermillion
+            ClanColor.Blue => Color.FromHtml("0072B2"),   // strong blue
+            ClanColor.Green => Color.FromHtml("009E73"),  // bluish green
+            ClanColor.Yellow => Color.FromHtml("F0E442"), // bright yellow
+            ClanColor.White => Color.FromHtml("F5F5F0"),
+            ClanColor.Purple => Color.FromHtml("CC79A7"), // reddish purple
+            ClanColor.Orange => Color.FromHtml("E69F00"),
+            ClanColor.Teal => Color.FromHtml("56B4E9"),   // sky blue
+            _ => Cream,
+        }
+        : color switch
+        {
+            ClanColor.Red => Color.FromHtml("B23A33"),
+            ClanColor.Blue => Color.FromHtml("2E5E8C"),
+            ClanColor.Green => Color.FromHtml("3E7D4F"),
+            ClanColor.Yellow => Color.FromHtml("C9A227"),
+            ClanColor.White => Color.FromHtml("E8E4D8"),
+            ClanColor.Purple => Color.FromHtml("7E4B8E"),
+            ClanColor.Orange => Color.FromHtml("CC6B2C"),
+            ClanColor.Teal => Color.FromHtml("2E8B8B"),
+            _ => Cream,
+        };
 }

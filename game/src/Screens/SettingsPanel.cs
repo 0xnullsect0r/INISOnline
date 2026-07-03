@@ -41,6 +41,8 @@ public partial class SettingsPanel : Overlay
     {
         var v = Tab("Video");
         v.AddChild(Toggle("Fullscreen", () => Settings.Fullscreen, x => Settings.Fullscreen = x));
+        v.AddChild(Toggle("V-Sync", () => Settings.VSync, x => Settings.VSync = x));
+        v.AddChild(Slider("UI scale", () => Settings.UiScale, x => Settings.UiScale = x, 0.75f, 1.5f));
         v.AddChild(Slider("Animation speed", () => Settings.AnimationSpeed, x => Settings.AnimationSpeed = x, 0.5f, 2f));
         return v;
     }
@@ -49,6 +51,7 @@ public partial class SettingsPanel : Overlay
     {
         var v = Tab("Gameplay");
         v.AddChild(Toggle("Confirm before committing a move", () => Settings.ConfirmMoves, x => Settings.ConfirmMoves = x));
+        v.AddChild(Toggle("Colorblind-friendly clan colors", () => Settings.ColorblindClans, x => Settings.ColorblindClans = x));
         return v;
     }
 

@@ -43,7 +43,11 @@ public sealed class LanHostGame : IGameSource
     }
 
     public IReadOnlyList<Move> LegalMoves() => CanLocalAct ? _host.HostLegalMoves() : Array.Empty<Move>();
-    public IReadOnlyList<string> Log { get; } = new List<string>();
+    public IReadOnlyList<string> Log => _host.HostLog;
+
+    public string? LocalPlayerId => _host.LocalHostPlayerId;
+    public bool SupportsChat => true;
+    public void SendChat(string text) => _host.HostChat(text);
 
     public string SeatName(string playerId) =>
         _view?.Players.Find(p => p.PlayerId == playerId)?.DisplayName ?? playerId;

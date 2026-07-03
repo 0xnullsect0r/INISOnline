@@ -36,6 +36,18 @@ public interface IGameSource
     /// <summary>Submit a chosen move (applies locally, or sends an intent to the server).</summary>
     void Submit(Move move);
 
+    /// <summary>
+    /// The seat this client renders private information for: the authenticated seat online,
+    /// or (hotseat) whoever must act right now. Null while spectating / not seated.
+    /// </summary>
+    string? LocalPlayerId { get; }
+
+    /// <summary>True when this source carries chat (networked modes).</summary>
+    bool SupportsChat { get; }
+
+    /// <summary>Send a chat line to the table (no-op when unsupported).</summary>
+    void SendChat(string text);
+
     /// <summary>Issue a server-authoritative debug/cheat command (grant/set_deeds/…); works online.</summary>
     void Debug(string command, string? cardId, int amount);
 

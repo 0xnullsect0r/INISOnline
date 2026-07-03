@@ -16,8 +16,11 @@ public static class Settings
     public static float Sfx = 0.85f;
     public static float Ui = 0.85f;
     public static bool Fullscreen = true;
+    public static bool VSync = true;
+    public static float UiScale = 1.0f;
     public static float AnimationSpeed = 1.0f;
     public static bool ConfirmMoves;
+    public static bool ColorblindClans;
 
     public static void Load()
     {
@@ -28,8 +31,11 @@ public static class Settings
         Sfx = (float)cfg.GetValue("audio", "sfx", Sfx);
         Ui = (float)cfg.GetValue("audio", "ui", Ui);
         Fullscreen = (bool)cfg.GetValue("video", "fullscreen", Fullscreen);
+        VSync = (bool)cfg.GetValue("video", "vsync", VSync);
+        UiScale = (float)cfg.GetValue("video", "ui_scale", UiScale);
         AnimationSpeed = (float)cfg.GetValue("video", "animation_speed", AnimationSpeed);
         ConfirmMoves = (bool)cfg.GetValue("gameplay", "confirm_moves", ConfirmMoves);
+        ColorblindClans = (bool)cfg.GetValue("gameplay", "colorblind_clans", ColorblindClans);
         Apply();
     }
 
@@ -41,8 +47,11 @@ public static class Settings
         cfg.SetValue("audio", "sfx", Sfx);
         cfg.SetValue("audio", "ui", Ui);
         cfg.SetValue("video", "fullscreen", Fullscreen);
+        cfg.SetValue("video", "vsync", VSync);
+        cfg.SetValue("video", "ui_scale", UiScale);
         cfg.SetValue("video", "animation_speed", AnimationSpeed);
         cfg.SetValue("gameplay", "confirm_moves", ConfirmMoves);
+        cfg.SetValue("gameplay", "colorblind_clans", ColorblindClans);
         cfg.Save(Path);
     }
 
@@ -54,9 +63,16 @@ public static class Settings
         SetBus("SFX", Sfx);
         SetBus("UI", Ui);
         if (DisplayServer.GetName() != "headless")
+        {
             DisplayServer.WindowSetMode(Fullscreen
                 ? DisplayServer.WindowMode.Fullscreen
                 : DisplayServer.WindowMode.Windowed);
+            DisplayServer.WindowSetVsyncMode(VSync
+                ? DisplayServer.VSyncMode.Enabled
+                : DisplayServer.VSyncMode.Disabled);
+            if (Engine.GetMainLoop() is SceneTree tree)
+                tree.Root.ContentScaleFactor = Mathf.Clamp(UiScale, 0.75f, 1.5f);
+        }
     }
 
     private static void SetBus(string name, float linear)

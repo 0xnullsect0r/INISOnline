@@ -63,6 +63,21 @@ public partial class AudioManager : Node
         if (stream is null) return;
         _loopMusic = loop;
         if (_musicPlayer.Stream == stream && _musicPlayer.Playing) return;
+
+        if (_musicPlayer.Playing)
+        {
+            // Crossfade: ease the old track out, then bring the new one in.
+            var fade = CreateTween();
+            fade.TweenProperty(_musicPlayer, "volume_db", -30f, 0.8f);
+            fade.TweenCallback(Callable.From(() =>
+            {
+                _musicPlayer.Stream = stream;
+                _musicPlayer.Play();
+            }));
+            fade.TweenProperty(_musicPlayer, "volume_db", 0f, 0.8f);
+            return;
+        }
+        _musicPlayer.VolumeDb = 0f;
         _musicPlayer.Stream = stream;
         _musicPlayer.Play();
     }

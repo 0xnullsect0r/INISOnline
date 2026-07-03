@@ -36,6 +36,7 @@ public sealed class RemoteGame : WsGameSourceBase, IDisposable
 
     private async Task ReceiveLoopAsync()
     {
+        var backoffSeconds = 1;
         while (!_cts.IsCancellationRequested)
         {
             try
@@ -43,6 +44,7 @@ public sealed class RemoteGame : WsGameSourceBase, IDisposable
                 _ws = new ClientWebSocket();
                 await _ws.ConnectAsync(_uri, _cts.Token);
                 ConnectStatus = "Connected";
+                backoffSeconds = 1; // healthy connection resets the backoff
                 await FlushAsync();
 
                 var buffer = new byte[32 * 1024];
@@ -63,10 +65,14 @@ public sealed class RemoteGame : WsGameSourceBase, IDisposable
                 }
             }
             catch (OperationCanceledException) { return; }
-            catch (Exception) { ConnectStatus = "Reconnecting…"; }
+            catch (Exception ex) { ConnectStatus = $"Reconnecting… ({ex.GetType().Name})"; }
 
             if (_cts.IsCancellationRequested) return;
-            try { await Task.Delay(1000, _cts.Token); } catch (OperationCanceledException) { return; }
+            // Exponential backoff so a dead server isn't hammered: 1s, 2s, 4s, … capped at 15s.
+            try { await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), _cts.Token); }
+            catch (OperationCanceledException) { return; }
+            backoffSeconds = Math.Min(backoffSeconds * 2, 15);
+            ConnectStatus = "Reconnecting…";
         }
     }
 

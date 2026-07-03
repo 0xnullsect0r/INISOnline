@@ -25,6 +25,9 @@ public static class MoveText
         MoveType.ClashSkipShelter => "Do not shelter",
         MoveType.AttackRemoveClan => "Lose a clan",
         MoveType.AttackDiscardCard => "Discard an Action card",
+        MoveType.PlayReaction => $"React: {CardName(data, move.CardId)}",
+        MoveType.PassReaction => "Don't react",
+        MoveType.SummerMove => "Beltane: discard a card to move clans",
         MoveType.Resign => "Resign",
         _ => move.Type.ToString(),
     };
@@ -37,6 +40,12 @@ public static class MoveText
         return string.Join(" · ", parts);
     }
 
-    private static string CardName(GameData data, string? cardId) =>
-        cardId is not null && data.TryGetCard(cardId, out var def) ? def.Name : cardId ?? "?";
+    private static string CardName(GameData data, string? cardId) => cardId switch
+    {
+        null => "?",
+        // Sacred Festival options are pseudo-cards, not entries in cards.json.
+        "festival.samhain" => "Samhain: trade an Action card for an Epic Tale",
+        "festival.lugnasad" => "Lugnasad: trade Epic Tales for clans",
+        _ => data.TryGetCard(cardId, out var def) ? def.Name : cardId,
+    };
 }
