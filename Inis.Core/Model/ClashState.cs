@@ -45,5 +45,8 @@ public sealed class ClashState
     /// <summary>Coalition: the two allied movers — they cannot use Citadels nor attack each other.</summary>
     public List<string> CoalitionPlayerIds { get; init; } = new();
 
+    /// <summary>Clans removed during this clash, by color (Dagda's Cauldron can return them).</summary>
+    public Dictionary<ClanColor, int> RemovedClans { get; init; } = new();
+
     public int ShelteredTotal => Sheltered.Values.Sum();
 }

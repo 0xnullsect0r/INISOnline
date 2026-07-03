@@ -35,6 +35,13 @@ public static class HeuristicAi
         "action.festival",            // protect a sanctuary territory
         "action.warlord",             // pick a fight where it helps
         "epic.balors_eye",            // remove an opponent clan
+        "epic.kernunos_sanctuary",    // clan + Sanctuary (Religion)
+        "epic.eriu",                  // clans onto sanctuary territories
+        "epic.nuada_silverhand",      // clans where we lead contested ground
+        "epic.dagdas_harp",           // clans per held epic
+        "epic.children_of_dana",      // one clan anywhere
+        "epic.champions_share",       // free action card
+        "epic.tuans_memory",          // dig for a good epic
         "epic.deirdres_beauty",       // draw (at the cost of a clan) — low priority
         "epic.battle_of_moytura",
         "epic.the_morrigan",
@@ -78,11 +85,36 @@ public static class HeuristicAi
         {
             switch (m.CardId)
             {
-                // Pure upside: free deed / free steal / keep your cancelled card.
+                // Pure upside: free deed / free steal / saved clans / kept cards.
                 case "action.bard":
                 case "action.raid":
                 case "epic.lug_samildanach":
+                case "epic.strengs_resolve":
+                case "epic.dagdas_club":
+                case "epic.dagdas_cauldron":
+                case "epic.diarmuid_grainne":
                     return m;
+
+                // Cancel any opponent Epic Tale or Advantage — nearly always worth it.
+                case "epic.the_dagda":
+                    return m;
+
+                // Flush the citadels only when opponents shelter more than we do.
+                case "epic.battle_frenzy":
+                {
+                    var clash = e.State.ActiveClash;
+                    if (clash is not null)
+                    {
+                        var own = clash.Sheltered.GetValueOrDefault(me.Color);
+                        if (clash.ShelteredTotal - own > own) return m;
+                    }
+                    break;
+                }
+
+                // Turn theft and set-aside prophecy have no simple payoff — hold them.
+                case "epic.oengus_ploy":
+                case "epic.cathbads_word":
+                    break;
 
                 // Pass the epic left and take a deed — always profitable.
                 case "action.master_craftsman":
@@ -281,6 +313,37 @@ public static class HeuristicAi
                 var t = present.FirstOrDefault(x => x.Clans.Count(kv => kv.Value > 0) >= 2);
                 return t is not null ? Play(t.InstanceId) : null;
             }
+
+            case "epic.kernunos_sanctuary":
+            {
+                var t = present.FirstOrDefault(x => x.Sanctuaries == 0);
+                return t is not null && me.ClanReserve > 0 && st.SanctuariesRemaining > 0
+                    ? Play(t.InstanceId) : null;
+            }
+            case "epic.eriu":
+                return me.ClanReserve > 0 && present.Any(t => t.Sanctuaries > 0) ? Play() : null;
+            case "epic.nuada_silverhand":
+                return me.ClanReserve > 0 && st.Territories.Values.Any(t =>
+                    t.Chieftain() == me.Color && t.Clans.Any(kv => kv.Key != me.Color && kv.Value > 0))
+                    ? Play() : null;
+            case "epic.dagdas_harp":
+            {
+                var epics = me.Hand.Count(x => x != cardId
+                    && e.Data.TryGetCard(x, out var d2) && d2.Type == CardType.EpicTale);
+                return epics > 0 && me.ClanReserve > 0 && present.Count > 0
+                    ? Play(present[0].InstanceId) : null;
+            }
+            case "epic.children_of_dana":
+            {
+                if (me.ClanReserve <= 0) return null;
+                var t = present.OrderBy(x => x.ClansOf(me.Color)).FirstOrDefault()
+                        ?? st.Territories.Values.FirstOrDefault();
+                return t is not null ? Play(t.InstanceId) : null;
+            }
+            case "epic.champions_share":
+                return st.SetAsideActionCard is not null ? Play() : null;
+            case "epic.tuans_memory":
+                return st.EpicDeck.Count + st.EpicDiscard.Count > 0 ? Play() : null;
 
             default:
                 return null; // unknown/reactive card: let the caller try something else

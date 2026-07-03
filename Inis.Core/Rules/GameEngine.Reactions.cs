@@ -25,9 +25,21 @@ public sealed partial class GameEngine
     private const string TaleOfCuchulain = "epic.tale_of_cuchulain";
     private const string OgmasEloquence = "epic.ogmas_eloquence";
     private const string CoalitionCard = "action.coalition";
+    private const string TheDagda = "epic.the_dagda";
+    private const string BattleFrenzy = "epic.battle_frenzy";
+    private const string DagdasCauldron = "epic.dagdas_cauldron";
+    private const string DagdasClub = "epic.dagdas_club";
+    private const string DiarmuidGrainne = "epic.diarmuid_grainne";
+    private const string StrengsResolve = "epic.strengs_resolve";
+    private const string OengusPloy = "epic.oengus_ploy";
+    private const string CathbadsWord = "epic.cathbads_word";
+    private const string TheFianna = "epic.the_fianna";
 
+    // Windows Lug's Spear shuts down ("no Triskels until the clash ends" — the clash-end
+    // window itself fires as the block lifts, so it stays open).
     private static bool IsClashScoped(ReactionTrigger t)
-        => t is ReactionTrigger.ClashStarted or ReactionTrigger.AttackResolved;
+        => t is ReactionTrigger.ClashStarted or ReactionTrigger.AttackResolved
+            or ReactionTrigger.CitadelStepEnded;
 
     /// <summary>
     /// Opens the window if anyone can react. Returns false (state untouched) otherwise —
@@ -57,6 +69,7 @@ public sealed partial class GameEngine
         switch (frame.Trigger)
         {
             case ReactionTrigger.ActionCardPlayed:
+            case ReactionTrigger.NonActionCardPlayed:
             {
                 // Opponents of the card's player, starting left of them.
                 var start = State.Players.FindIndex(p => p.PlayerId == frame.TriggerPlayerId);
@@ -64,12 +77,23 @@ public sealed partial class GameEngine
                     .Where(pid => pid != frame.TriggerPlayerId);
             }
             case ReactionTrigger.ClashStarted:
+            case ReactionTrigger.CitadelStepEnded:
+            case ReactionTrigger.ClashEnded:
                 return State.ActiveClash?.Order ?? Enumerable.Empty<string>();
             case ReactionTrigger.GeisCancelled:
             case ReactionTrigger.EpicTalePlayed:
-            case ReactionTrigger.AttackResolved:
                 return frame.TriggerPlayerId is { } pid ? new[] { pid } : Enumerable.Empty<string>();
+            case ReactionTrigger.AttackResolved:
+                // The attacker reacts first (Bard/Raid/Streng's Resolve), then the defender
+                // (Dagda's Club / Diarmuid and Gráinne) — active player first, per the FAQ.
+                return new[] { frame.TriggerPlayerId, frame.TargetPlayerId }
+                    .Where(x => x is not null).Cast<string>();
+            case ReactionTrigger.TurnEnded:
+                // Any holder, starting left of the player whose turn just ended.
+                return TurnOrderFrom(NextSeat(State.CurrentPlayerIndex))
+                    .Select(s => State.Players[s].PlayerId);
             case ReactionTrigger.CardFollowUp:
+            case ReactionTrigger.AssemblySetAside:
                 return frame.TargetPlayerId is { } tid ? new[] { tid } : Enumerable.Empty<string>();
             default:
                 return Enumerable.Empty<string>();
@@ -89,6 +113,10 @@ public sealed partial class GameEngine
                 if (reactor.PlayerId != frame.TriggerPlayerId && reactor.Hand.Contains(Geis))
                     list.Add(Geis);
                 break;
+            case ReactionTrigger.NonActionCardPlayed:
+                if (reactor.PlayerId != frame.TriggerPlayerId && reactor.Hand.Contains(TheDagda))
+                    list.Add(TheDagda);
+                break;
             case ReactionTrigger.GeisCancelled:
                 if (reactor.Hand.Contains(LugSamildanach)) list.Add(LugSamildanach);
                 break;
@@ -98,12 +126,38 @@ public sealed partial class GameEngine
             case ReactionTrigger.ClashStarted:
                 if (reactor.Hand.Contains(Warlord) && reactor.ClanReserve > 0) list.Add(Warlord);
                 break;
+            case ReactionTrigger.CitadelStepEnded:
+                if (reactor.Hand.Contains(BattleFrenzy) && clash?.ShelteredTotal > 0)
+                    list.Add(BattleFrenzy);
+                break;
+            case ReactionTrigger.ClashEnded:
+                if (reactor.Hand.Contains(DagdasCauldron) && clash is not null
+                    && clash.RemovedClans.GetValueOrDefault(reactor.Color) > 0
+                    && reactor.ClanReserve > 0)
+                    list.Add(DagdasCauldron);
+                break;
             case ReactionTrigger.AttackResolved:
                 if (reactor.PlayerId == frame.TriggerPlayerId)
                 {
                     if (frame.ClansRemoved && reactor.Hand.Contains(BardCard)) list.Add(BardCard);
                     if (reactor.Hand.Contains(RaidCard)) list.Add(RaidCard);
+                    if (reactor.Hand.Contains(StrengsResolve)) list.Add(StrengsResolve);
                 }
+                else if (reactor.PlayerId == frame.TargetPlayerId && frame.ClansRemoved
+                         && reactor.ClanReserve > 0)
+                {
+                    if (reactor.Hand.Contains(DagdasClub)) list.Add(DagdasClub);
+                    if (reactor.Hand.Contains(DiarmuidGrainne) && State.Territories.Values.Any(t =>
+                            t.InstanceId != frame.TerritoryId && t.IsPresent(reactor.Color)))
+                        list.Add(DiarmuidGrainne);
+                }
+                break;
+            case ReactionTrigger.TurnEnded:
+                if (reactor.Hand.Contains(OengusPloy)) list.Add(OengusPloy);
+                break;
+            case ReactionTrigger.AssemblySetAside:
+                if (reactor.PlayerId == frame.TargetPlayerId && reactor.Hand.Contains(CathbadsWord))
+                    list.Add(CathbadsWord);
                 break;
             case ReactionTrigger.CardFollowUp:
                 // The follow-up "reaction" is the trigger card's own continuation — the targeted
@@ -209,6 +263,18 @@ public sealed partial class GameEngine
                 AfterCardPlayed();
                 break;
             }
+            case ReactionContinuation.ResumeClashResolution:
+                PromptNextManeuver();
+                break;
+            case ReactionContinuation.FinishEndClash:
+                FinishEndClash();
+                break;
+            case ReactionContinuation.AdvanceTurn:
+                AdvanceSeasonTurnCore();
+                break;
+            case ReactionContinuation.FinishAssemblyDeal:
+                FinishAssemblyDeal();
+                break;
         }
     }
 
@@ -320,6 +386,119 @@ public sealed partial class GameEngine
                 Emit("ReactionPlayed", reactor.PlayerId, LugsSpear);
                 State.ReactionStack.Remove(frame);
                 RunContinuation(frame); // the window slams shut for everyone
+                break;
+            }
+
+            case TheDagda:
+            {
+                reactor.Hand.Remove(TheDagda);
+                State.EpicDiscard.Add(TheDagda);
+                Emit("ReactionPlayed", reactor.PlayerId, TheDagda);
+                Emit("CardCancelled", frame.TriggerPlayerId, frame.TriggerCardId);
+                frame.Cancelled = true;
+                State.ReactionStack.Remove(frame);
+                RunContinuation(frame); // the cancelled Epic/Advantage is still discarded
+                break;
+            }
+
+            case BattleFrenzy:
+            {
+                var clash = State.ActiveClash!;
+                reactor.Hand.Remove(BattleFrenzy);
+                State.EpicDiscard.Add(BattleFrenzy);
+                clash.Sheltered.Clear(); // everyone tumbles out of the citadels
+                Emit("ReactionPlayed", reactor.PlayerId, BattleFrenzy, TerritoryId: clash.TerritoryId);
+                State.ReactionStack.Remove(frame);
+                RunContinuation(frame);
+                break;
+            }
+
+            case DagdasCauldron:
+            {
+                var clash = State.ActiveClash!;
+                var territory = State.Territories[clash.TerritoryId];
+                reactor.Hand.Remove(DagdasCauldron);
+                State.EpicDiscard.Add(DagdasCauldron);
+                var lost = clash.RemovedClans.GetValueOrDefault(reactor.Color);
+                var back = Math.Min(lost, reactor.ClanReserve);
+                if (back > 0)
+                {
+                    territory.AddClans(reactor.Color, back);
+                    reactor.ClanReserve -= back;
+                    clash.RemovedClans[reactor.Color] = 0;
+                }
+                Emit("ReactionPlayed", reactor.PlayerId, DagdasCauldron, TerritoryId: territory.InstanceId,
+                    Detail: back.ToString());
+                AdvanceOrCloseWindow(frame);
+                break;
+            }
+
+            case StrengsResolve:
+            {
+                reactor.Hand.Remove(StrengsResolve);
+                State.EpicDiscard.Add(StrengsResolve);
+                GainDeed(reactor);
+                Emit("ReactionPlayed", reactor.PlayerId, StrengsResolve);
+                AdvanceOrCloseWindow(frame); // Bard/Raid may still follow
+                break;
+            }
+
+            case DagdasClub:
+            {
+                // The clan the attack just removed is not lost after all.
+                var territory = State.Territories[frame.TerritoryId!];
+                reactor.Hand.Remove(DagdasClub);
+                State.EpicDiscard.Add(DagdasClub);
+                territory.AddClans(reactor.Color, 1);
+                reactor.ClanReserve--;
+                if (State.ActiveClash is { } cl && cl.RemovedClans.GetValueOrDefault(reactor.Color) > 0)
+                    cl.RemovedClans[reactor.Color]--;
+                Emit("ReactionPlayed", reactor.PlayerId, DagdasClub, TerritoryId: territory.InstanceId);
+                AdvanceOrCloseWindow(frame);
+                break;
+            }
+
+            case DiarmuidGrainne:
+            {
+                // The removed clan flees to a different territory where its player is present.
+                var dest = Territory(move.TerritoryId);
+                if (dest is null || dest.InstanceId == frame.TerritoryId || !dest.IsPresent(reactor.Color))
+                    dest = State.Territories.Values.First(t =>
+                        t.InstanceId != frame.TerritoryId && t.IsPresent(reactor.Color));
+                reactor.Hand.Remove(DiarmuidGrainne);
+                State.EpicDiscard.Add(DiarmuidGrainne);
+                dest.AddClans(reactor.Color, 1);
+                reactor.ClanReserve--;
+                if (State.ActiveClash is { } acl && acl.RemovedClans.GetValueOrDefault(reactor.Color) > 0)
+                    acl.RemovedClans[reactor.Color]--;
+                Emit("ReactionPlayed", reactor.PlayerId, DiarmuidGrainne, TerritoryId: dest.InstanceId);
+                AdvanceOrCloseWindow(frame);
+                break;
+            }
+
+            case OengusPloy:
+            {
+                reactor.Hand.Remove(OengusPloy);
+                State.EpicDiscard.Add(OengusPloy);
+                Emit("ReactionPlayed", reactor.PlayerId, OengusPloy);
+                State.ReactionStack.Remove(frame);
+                // The holder seizes the next turn; pass counting is otherwise unchanged.
+                State.CurrentPlayerIndex = State.Players.IndexOf(reactor);
+                State.Pending = new PendingDecision { Kind = PendingKind.SeasonTurn, PlayerId = reactor.PlayerId };
+                break;
+            }
+
+            case CathbadsWord:
+            {
+                var deck = State.StagedActionDeck!;
+                reactor.Hand.Remove(CathbadsWord);
+                State.EpicDiscard.Add(CathbadsWord);
+                var chosen = move.CardIds?.FirstOrDefault(deck.Contains) ?? deck[0];
+                deck.Remove(chosen);
+                State.SetAsideActionCard = chosen;
+                Emit("ReactionPlayed", reactor.PlayerId, CathbadsWord);
+                State.ReactionStack.Remove(frame);
+                RunContinuation(frame);
                 break;
             }
 

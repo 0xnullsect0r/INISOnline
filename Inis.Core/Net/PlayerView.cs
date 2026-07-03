@@ -29,6 +29,7 @@ public static class PlayerView
         // Secret-order draw zones: keep counts, hide contents.
         Mask(view.ActionDeck);
         Mask(view.EpicDeck);
+        if (view.StagedActionDeck is not null) Mask(view.StagedActionDeck);
         if (view.SetAsideActionCard is not null) view.SetAsideActionCard = Hidden;
 
         // The intent log can encode opponents' draft picks — it's an internal replay aid, not

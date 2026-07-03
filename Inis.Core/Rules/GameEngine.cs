@@ -212,8 +212,35 @@ public sealed partial class GameEngine
             for (var i = 0; i < c.Count * copies; i++) deck.Add(c.Id);
         }
         _rng.Shuffle(deck);
-        State.SetAsideActionCard = deck[0];
-        deck.RemoveAt(0);
+
+        // Cathbad's Word: its holder chooses the set-aside card instead of leaving it to chance.
+        State.SetAsideActionCard = null;
+        State.StagedActionDeck = deck;
+        var seer = TurnOrderFrom(State.BrennIndex)
+            .Select(s => State.Players[s])
+            .FirstOrDefault(p => p.Hand.Contains("epic.cathbads_word"));
+        if (seer is not null && TryOpenReactionWindow(new ReactionFrame
+            {
+                Trigger = ReactionTrigger.AssemblySetAside,
+                TargetPlayerId = seer.PlayerId,
+                TriggerCardId = "epic.cathbads_word",
+                Continuation = ReactionContinuation.FinishAssemblyDeal,
+            }))
+            return;
+        FinishAssemblyDeal();
+    }
+
+    /// <summary>Sets aside the Action card (unless Cathbad's Word chose one) and deals the draft.</summary>
+    private void FinishAssemblyDeal()
+    {
+        var n = State.Players.Count;
+        var deck = State.StagedActionDeck!;
+        State.StagedActionDeck = null;
+        if (State.SetAsideActionCard is null)
+        {
+            State.SetAsideActionCard = deck[0];
+            deck.RemoveAt(0);
+        }
 
         var perHand = n == 2 ? 3 : 4;
         var keepCounts = n == 2 ? new[] { 1, 2 } : new[] { 1, 2, 3 };
@@ -374,6 +401,18 @@ public sealed partial class GameEngine
 
     private void AdvanceSeasonTurn()
     {
+        // Oengus's Ploy: any holder may seize the next turn (even one that would end the Season).
+        if (TryOpenReactionWindow(new ReactionFrame
+            {
+                Trigger = ReactionTrigger.TurnEnded,
+                Continuation = ReactionContinuation.AdvanceTurn,
+            }))
+            return;
+        AdvanceSeasonTurnCore();
+    }
+
+    private void AdvanceSeasonTurnCore()
+    {
         if (State.ConsecutivePasses >= State.Players.Count)
         {
             EndSeason();
@@ -504,10 +543,13 @@ public sealed partial class GameEngine
         if (!player.Hand.Remove(cid)) player.Advantages.Remove(cid);
         Emit("CardPlayed", player.PlayerId, cid);
 
-        // Opponents may interrupt an Action card with Geis before its effect resolves.
-        if (def.Type == CardType.Action && TryOpenReactionWindow(new ReactionFrame
+        // Opponents may interrupt before the effect resolves: Geis cancels Action cards,
+        // The Dagda cancels Epic Tale and Advantage cards.
+        if (TryOpenReactionWindow(new ReactionFrame
             {
-                Trigger = ReactionTrigger.ActionCardPlayed,
+                Trigger = def.Type == CardType.Action
+                    ? ReactionTrigger.ActionCardPlayed
+                    : ReactionTrigger.NonActionCardPlayed,
                 TriggerPlayerId = player.PlayerId,
                 TriggerCardId = cid,
                 TriggerMove = move,
@@ -607,6 +649,9 @@ public sealed partial class GameEngine
         territory.AddClans(color, -1);
         var owner = State.PlayerByColor(color);
         if (owner is not null) owner.ClanReserve++;
+        // Track per-clash losses so Dagda's Cauldron can return them when the clash ends.
+        if (State.ActiveClash is { } clash && clash.TerritoryId == territory.InstanceId)
+            clash.RemovedClans[color] = clash.RemovedClans.GetValueOrDefault(color) + 1;
         Emit("ClanRemoved", owner?.PlayerId, TerritoryId: territory.InstanceId);
     }
 
@@ -758,6 +803,15 @@ public sealed partial class GameEngine
             clash.ForcedFirstManeuverId = null;
         }
         clash.AgreedToEnd.Clear();
+
+        // Battle Frenzy may turn every sheltered clan out of the citadels right here.
+        if (TryOpenReactionWindow(new ReactionFrame
+            {
+                Trigger = ReactionTrigger.CitadelStepEnded,
+                TerritoryId = clash.TerritoryId,
+                Continuation = ReactionContinuation.ResumeClashResolution,
+            }))
+            return;
         PromptNextManeuver();
     }
 
@@ -858,7 +912,8 @@ public sealed partial class GameEngine
             {
                 // Maneuver-Triskels: played in place of a normal maneuver.
                 var cid = move.CardId ?? throw new InvalidOperationException("PlayCard needs a card id.");
-                Require(cid is TaleOfCuchulain or OgmasEloquence, "Only a maneuver Triskel may be played here.");
+                Require(cid is TaleOfCuchulain or OgmasEloquence or TheFianna,
+                    "Only a maneuver Triskel may be played here.");
                 Require(player.Hand.Contains(cid), "Card not in hand.");
                 Require(!clash.TriskelsBlocked, "Lug's Spear blocks Triskel cards this clash.");
                 player.Hand.Remove(cid);
@@ -866,6 +921,25 @@ public sealed partial class GameEngine
                 Emit("CardPlayed", player.PlayerId, cid);
 
                 if (cid == OgmasEloquence) { EndClash(); return; }
+
+                if (cid == TheFianna)
+                {
+                    // Move own clans (sheltered or exposed) out to an adjacent territory, no clash.
+                    var dest = Territory(move.ToTerritoryId);
+                    if (dest is null || !territory.Adjacent.Contains(dest.InstanceId))
+                        dest = territory.Adjacent.Select(id => State.Territories[id]).FirstOrDefault();
+                    Require(dest is not null, "The Fianna needs an adjacent destination.");
+                    var own = territory.ClansOf(player.Color);
+                    var n = Math.Min(move.Amount > 0 ? move.Amount : own, own);
+                    territory.AddClans(player.Color, -n);
+                    dest!.AddClans(player.Color, n);
+                    var remaining = territory.ClansOf(player.Color);
+                    if (clash.Sheltered.GetValueOrDefault(player.Color) > remaining)
+                        clash.Sheltered[player.Color] = remaining;
+                    Emit("ClansMoved", player.PlayerId, TerritoryId: dest.InstanceId, Detail: n.ToString());
+                    AfterManeuver();
+                    break;
+                }
 
                 // Tale of Cuchulain: remove up to two exposed clans from the clashing territory.
                 clash.AgreedToEnd.Clear();
@@ -932,6 +1006,19 @@ public sealed partial class GameEngine
     }
 
     private void EndClash()
+    {
+        // Dagda's Cauldron: as the clash ends, a player may return the clans they lost in it.
+        if (TryOpenReactionWindow(new ReactionFrame
+            {
+                Trigger = ReactionTrigger.ClashEnded,
+                TerritoryId = State.ActiveClash!.TerritoryId,
+                Continuation = ReactionContinuation.FinishEndClash,
+            }))
+            return;
+        FinishEndClash();
+    }
+
+    private void FinishEndClash()
     {
         var clash = State.ActiveClash!;
         Emit("ClashEnded", TerritoryId: clash.TerritoryId);
@@ -1003,6 +1090,9 @@ public sealed partial class GameEngine
                         list.Add(new Move { Type = MoveType.PlayCard, PlayerId = player.PlayerId, CardId = TaleOfCuchulain });
                     if (player.Hand.Contains(OgmasEloquence))
                         list.Add(new Move { Type = MoveType.PlayCard, PlayerId = player.PlayerId, CardId = OgmasEloquence });
+                    if (player.Hand.Contains(TheFianna) && territory.Adjacent.Count > 0
+                        && territory.ClansOf(player.Color) > 0)
+                        list.Add(new Move { Type = MoveType.PlayCard, PlayerId = player.PlayerId, CardId = TheFianna });
                 }
                 break;
 

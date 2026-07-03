@@ -17,6 +17,16 @@ public enum ReactionTrigger
     AttackResolved,
     /// <summary>A card effect awaits a decision from another player (e.g. Coalition's partner).</summary>
     CardFollowUp,
+    /// <summary>An Epic Tale or Advantage card was played and has not resolved yet (The Dagda).</summary>
+    NonActionCardPlayed,
+    /// <summary>A clash's Citadels step just finished, before Resolution (Battle Frenzy).</summary>
+    CitadelStepEnded,
+    /// <summary>A clash is ending (Dagda's Cauldron may return removed clans).</summary>
+    ClashEnded,
+    /// <summary>A Season turn just ended (Oengus's Ploy may seize the next one).</summary>
+    TurnEnded,
+    /// <summary>The Assembly is about to set aside an Action card (Cathbad's Word chooses it).</summary>
+    AssemblySetAside,
 }
 
 /// <summary>What the engine resumes once a reaction window closes.</summary>
@@ -34,6 +44,14 @@ public enum ReactionContinuation
     ResumeSeasonTurn,
     /// <summary>Coalition: both movers are in; check the destination for a clash, then continue.</summary>
     CoalitionClash,
+    /// <summary>Continue the clash's Resolution step (after the Citadels-step window).</summary>
+    ResumeClashResolution,
+    /// <summary>Finish tearing down an ended clash (after the clash-end window).</summary>
+    FinishEndClash,
+    /// <summary>Advance the Season turn without reopening the turn-end window.</summary>
+    AdvanceTurn,
+    /// <summary>Finish the Assembly deal (after the set-aside window).</summary>
+    FinishAssemblyDeal,
 }
 
 /// <summary>

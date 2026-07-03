@@ -41,6 +41,12 @@ public sealed class GameState
     /// <summary>The one Action card set aside face-down during the deal (used by Cove etc.).</summary>
     public string? SetAsideActionCard { get; set; }
 
+    /// <summary>
+    /// The freshly built Action deck, staged while the Assembly's set-aside window
+    /// (Cathbad's Word) is open; null at all other times. Hidden from clients.
+    /// </summary>
+    public List<string>? StagedActionDeck { get; set; }
+
     /// <summary>Shared building reserves (10 each in the base game).</summary>
     public int CitadelsRemaining { get; set; } = 10;
     public int SanctuariesRemaining { get; set; } = 10;
