@@ -242,17 +242,24 @@ jobs:
 
           APP="$WORK/$APP_NAME"
 
-          # Sign every Mach-O inside from the inside out (inner-most first — required
-          # so outer signatures cover the fresh inner ones). --force replaces the
-          # existing signature Godot put there, --options=runtime enables hardened
-          # runtime, --timestamp adds Apple's secure timestamp.
-          find "$APP" -type f \( -name "*.dylib" -o -name "*.so" \) -print0 \
-            | xargs -0 -I{} codesign --force --timestamp --options=runtime \
-                --sign "$IDENTITY" "{}"
-          # Sign nested executables (the main binary, plus any helper tools).
-          find "$APP/Contents/MacOS" -type f -perm -u+x -print0 \
-            | xargs -0 -I{} codesign --force --timestamp --options=runtime \
-                --sign "$IDENTITY" "{}"
+          # Sign every Mach-O binary inside, detected by `file` rather than extension
+          # so we catch things like .NET's `createdump` executable (no extension, not
+          # in Contents/MacOS/). Process leaves-first (`sort -r` on path depth) so
+          # outer signatures cover fresh inner ones. --force replaces the existing
+          # (rcodesign) signature, --options=runtime enables hardened runtime,
+          # --timestamp adds Apple's secure timestamp — both required for notarization.
+          find "$APP" -type f -print0 \
+            | while IFS= read -r -d '' f; do
+                if file "$f" 2>/dev/null | grep -q "Mach-O"; then
+                  echo "$(echo "$f" | tr -cd / | wc -c) $f"
+                fi
+              done \
+            | sort -rn \
+            | cut -d' ' -f2- \
+            | while IFS= read -r f; do
+                codesign --force --timestamp --options=runtime \
+                         --sign "$IDENTITY" "$f"
+              done
           # Finally re-sign the bundle itself.
           codesign --force --deep --timestamp --options=runtime \
                    --sign "$IDENTITY" "$APP"
