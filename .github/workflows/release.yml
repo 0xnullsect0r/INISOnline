@@ -243,20 +243,24 @@ jobs:
           APP="$WORK/$APP_NAME"
 
           # Sign every Mach-O binary inside, detected by `file` rather than extension
-          # so we catch things like .NET's `createdump` executable (no extension, not
-          # in Contents/MacOS/). Process leaves-first (`sort -r` on path depth) so
-          # outer signatures cover fresh inner ones. --force replaces the existing
-          # (rcodesign) signature, --options=runtime enables hardened runtime,
-          # --timestamp adds Apple's secure timestamp — both required for notarization.
+          # (catches things like .NET's `createdump` — no extension, not in
+          # Contents/MacOS/). Emit "<depth>\t<path>" so we can `sort -rn` deepest-
+          # first and `awk -F\t` to strip the depth cleanly (paths contain spaces;
+          # wc -c on macOS emits leading whitespace, so cut -d' ' doesn't work).
+          # --force replaces the rcodesign placeholder signature, --options=runtime
+          # enables hardened runtime, --timestamp adds Apple's secure timestamp —
+          # both required for notarization.
           find "$APP" -type f -print0 \
             | while IFS= read -r -d '' f; do
                 if file "$f" 2>/dev/null | grep -q "Mach-O"; then
-                  echo "$(echo "$f" | tr -cd / | wc -c) $f"
+                  depth=$(printf '%s' "$f" | tr -cd '/' | wc -c | tr -d ' ')
+                  printf '%s\t%s\n' "$depth" "$f"
                 fi
               done \
             | sort -rn \
-            | cut -d' ' -f2- \
+            | awk '{ i=index($0, "\t"); print substr($0, i+1) }' \
             | while IFS= read -r f; do
+                echo "codesign: $f"
                 codesign --force --timestamp --options=runtime \
                          --sign "$IDENTITY" "$f"
               done
