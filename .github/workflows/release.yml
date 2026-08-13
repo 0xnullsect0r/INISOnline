@@ -71,15 +71,22 @@ jobs:
           version: ${{ env.GODOT_VERSION }}
           use-dotnet: true
           include-templates: true
-      - name: Install flatpak + flatpak-builder + librsvg
+      - name: Install flatpak + flatpak-builder + runtime + librsvg
         # flatpak-github-actions/flatpak-builder@v6 does NOT install flatpak-builder
         # itself (it can run inside a freedesktop-sdk container, which we don't use
         # here because we also need dotnet + Godot). Install it explicitly.
+        # Also pre-install the runtime + SDK as --system with sudo — the action
+        # invokes `flatpak install --system` as the runner user, which lacks Polkit
+        # system-helper access, so if the runtime isn't already there it fails with
+        # "Flatpak system operation Deploy not allowed for user".
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder librsvg2-bin
           sudo flatpak remote-add --if-not-exists flathub \
             https://flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install --system -y --noninteractive flathub \
+            org.freedesktop.Platform//24.08 \
+            org.freedesktop.Sdk//24.08
       - name: Build C# (export config)
         run: dotnet build game/INISOnline.sln -c ExportRelease
       - name: Export Linux binary
