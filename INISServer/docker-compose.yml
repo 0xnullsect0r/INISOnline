@@ -1,6 +1,24 @@
-# INISServer — single-compose deployment.
-# The API is published on host port 80 for the upstream reverse proxy that fronts
-# inis.aricummings.com (it terminates TLS and forwards to this service).
+# INISServer — production single-node deployment.
+#
+# Pulls the prebuilt server image published by `.github/workflows/release.yml`
+# on every `v*` tag. The API is published on host port 80 for the upstream
+# reverse proxy that fronts inis.aricummings.com (it terminates TLS and
+# forwards to this service).
+#
+# Deploy on a fresh box:
+#   docker compose pull && docker compose up -d
+# Update to the newest release:
+#   docker compose pull server && docker compose up -d server
+# Pin a specific version (recommended in prod):
+#   IMAGE_TAG=v1.0.9 docker compose up -d
+#
+# Required env (set in a .env file next to this compose, or in the shell):
+#   POSTGRES_PASSWORD    # Postgres password for the `inis` user
+#   JWT_SIGNING_KEY      # 32+ char random string; `openssl rand -base64 48`
+#
+# The image is at ghcr.io/0xnullsect0r/inisonline/inisserver. If the package
+# is still private, `docker login ghcr.io` first with a PAT that has
+# `read:packages`.
 services:
   postgres:
     image: postgres:17-alpine
@@ -8,7 +26,7 @@ services:
     environment:
       POSTGRES_DB: inis
       POSTGRES_USER: inis
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -18,20 +36,23 @@ services:
       retries: 10
 
   server:
-    build:
-      context: ..
-      dockerfile: INISServer/Dockerfile
+    image: ghcr.io/0xnullsect0r/inisonline/inisserver:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=inis;Username=inis;Password=${POSTGRES_PASSWORD:-inis}"
-      # Generate a strong key for production, e.g. `openssl rand -base64 48`.
-      Jwt__SigningKey: ${JWT_SIGNING_KEY:-dev-only-insecure-signing-key-change-me-please-32+chars}
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=inis;Username=inis;Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY must be set (openssl rand -base64 48)}
     ports:
       - "80:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/health || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
 
 volumes:
   pgdata:

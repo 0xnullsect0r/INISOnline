@@ -10,8 +10,32 @@
 dotnet build Inis.slnx
 dotnet test Inis.Core.Tests
 dotnet run --project INISServer            # local API + Scalar at /scalar
-cd INISServer && docker compose up --build # Postgres + API on :80
+
+# Docker: production compose pulls ghcr.io/.../inisserver:latest.
+# For local dev, apply the docker-compose.dev.yml override so the image is
+# built from source instead:
+cd INISServer && POSTGRES_PASSWORD=inis JWT_SIGNING_KEY=dev-key-change-me-32chars-min-please \
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
+
+## Deploying the server (production)
+The release CI pushes the server image to GHCR on every `v*` tag
+(`ghcr.io/<owner>/<repo>/inisserver:<tag>` + `:latest`). To deploy:
+
+```bash
+# On the server, with docker + docker compose installed:
+cp INISServer/docker-compose.yml .              # or clone the repo
+cat > .env <<EOF
+POSTGRES_PASSWORD=$(openssl rand -base64 32)
+JWT_SIGNING_KEY=$(openssl rand -base64 48)
+IMAGE_TAG=latest                                # or pin to v1.0.9
+EOF
+docker compose pull && docker compose up -d
+```
+
+Put nginx / Caddy / Traefik in front to terminate TLS. Postgres data
+persists in the `pgdata` named volume. To roll to a newer release:
+`docker compose pull server && docker compose up -d server`.
 
 ## Client (Godot)
 Open `game/` in Godot 4.4 (.NET). First build restores the `Inis.Core` reference and

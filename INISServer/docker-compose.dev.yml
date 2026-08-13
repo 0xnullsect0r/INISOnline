@@ -1,0 +1,12 @@
+# Dev override for INISServer/docker-compose.yml — builds the server image
+# from the local source tree instead of pulling it from GHCR. Use with:
+#
+#   POSTGRES_PASSWORD=inis JWT_SIGNING_KEY=dev-key-change-me-32chars-min-please \
+#     docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: INISServer/Dockerfile
+    # Ignore the `image:` from the base compose — dev builds get a local tag.
+    image: inisserver:dev
