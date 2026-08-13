@@ -212,6 +212,57 @@ jobs:
           mkdir -p build/macos
           godot --headless --path game --export-release "macOS" \
             "$GITHUB_WORKSPACE/build/macos/INISOnline.dmg"
+      - name: Deep-sign the exported bundle
+        # Godot's macOS export signs the outer .app but does NOT recursively re-sign
+        # the nested .NET native dylibs it drops in Contents/Resources/data_*/. The
+        # notary rejects those as "not signed with a valid Developer ID certificate"
+        # / "signature does not include a secure timestamp". Fix: unpack the DMG,
+        # `codesign --deep --force --timestamp --options=runtime` every Mach-O inside,
+        # then repackage.
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          DMG="$GITHUB_WORKSPACE/build/macos/INISOnline.dmg"
+          WORK=$RUNNER_TEMP/macos-resign
+          mkdir -p "$WORK"
+
+          IDENTITY=$(security find-identity -v -p codesigning \
+            $RUNNER_TEMP/app-signing.keychain-db \
+            | awk -F'"' '/Developer ID Application/ {print $2; exit}')
+          echo "Deep-signing with: $IDENTITY"
+
+          # Convert compressed DMG to a read-write copy, mount, sync .app out, unmount.
+          hdiutil convert "$DMG" -format UDRW -o "$WORK/rw.dmg"
+          MOUNT=$WORK/mount
+          mkdir -p "$MOUNT"
+          hdiutil attach "$WORK/rw.dmg" -mountpoint "$MOUNT" -nobrowse -noverify -noautoopen
+          APP_NAME=$(ls "$MOUNT" | grep '\.app$' | head -1)
+          cp -a "$MOUNT/$APP_NAME" "$WORK/"
+          hdiutil detach "$MOUNT" -force
+
+          APP="$WORK/$APP_NAME"
+
+          # Sign every Mach-O inside from the inside out (inner-most first — required
+          # so outer signatures cover the fresh inner ones). --force replaces the
+          # existing signature Godot put there, --options=runtime enables hardened
+          # runtime, --timestamp adds Apple's secure timestamp.
+          find "$APP" -type f \( -name "*.dylib" -o -name "*.so" \) -print0 \
+            | xargs -0 -I{} codesign --force --timestamp --options=runtime \
+                --sign "$IDENTITY" "{}"
+          # Sign nested executables (the main binary, plus any helper tools).
+          find "$APP/Contents/MacOS" -type f -perm -u+x -print0 \
+            | xargs -0 -I{} codesign --force --timestamp --options=runtime \
+                --sign "$IDENTITY" "{}"
+          # Finally re-sign the bundle itself.
+          codesign --force --deep --timestamp --options=runtime \
+                   --sign "$IDENTITY" "$APP"
+          # Verify locally before shipping to Apple.
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+          # Rebuild the .dmg from the re-signed .app.
+          rm -f "$DMG"
+          hdiutil create -volname "INIS Online" -srcfolder "$APP" \
+            -ov -format UDZO "$DMG"
       - name: Notarize + staple
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
