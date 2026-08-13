@@ -218,11 +218,40 @@ jobs:
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          xcrun notarytool submit build/macos/INISOnline.dmg \
+          # Note: `notarytool submit --wait` exits 0 even if the notarization completes
+          # with status "Invalid" — we have to check the status explicitly, and ALWAYS
+          # pull the per-file log from Apple so we can see what was rejected and why.
+          set +e
+          SUBMIT_OUT=$(xcrun notarytool submit build/macos/INISOnline.dmg \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait
+            --wait --output-format json 2>&1)
+          echo "$SUBMIT_OUT"
+          SUB_ID=$(echo "$SUBMIT_OUT" | python3 -c "
+          import sys, re
+          m = re.search(r'\"id\"\s*:\s*\"([0-9a-f-]+)\"', sys.stdin.read())
+          print(m.group(1) if m else '')
+          ")
+          STATUS=$(echo "$SUBMIT_OUT" | python3 -c "
+          import sys, re
+          m = re.search(r'\"status\"\s*:\s*\"([A-Za-z]+)\"', sys.stdin.read())
+          print(m.group(1) if m else '')
+          ")
+          echo "Notarization submission id: $SUB_ID"
+          echo "Notarization status: $STATUS"
+          if [ -n "$SUB_ID" ]; then
+            echo "::group::Apple notary log for $SUB_ID"
+            xcrun notarytool log "$SUB_ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" || true
+            echo "::endgroup::"
+          fi
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "::error::Notarization returned status '$STATUS' (need 'Accepted'). See the notary log above."
+            exit 1
+          fi
           xcrun stapler staple build/macos/INISOnline.dmg
       - name: Clean up keychain
         if: ${{ always() }}
