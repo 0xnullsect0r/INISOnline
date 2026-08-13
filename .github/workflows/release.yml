@@ -71,6 +71,15 @@ jobs:
           version: ${{ env.GODOT_VERSION }}
           use-dotnet: true
           include-templates: true
+      - name: Install flatpak + flatpak-builder + librsvg
+        # flatpak-github-actions/flatpak-builder@v6 does NOT install flatpak-builder
+        # itself (it can run inside a freedesktop-sdk container, which we don't use
+        # here because we also need dotnet + Godot). Install it explicitly.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder librsvg2-bin
+          sudo flatpak remote-add --if-not-exists flathub \
+            https://flathub.org/repo/flathub.flatpakrepo
       - name: Build C# (export config)
         run: dotnet build game/INISOnline.sln -c ExportRelease
       - name: Export Linux binary
@@ -85,7 +94,6 @@ jobs:
           cp packaging/linux/INISOnline.sh "$STAGING/"
           cp packaging/linux/com.aricummings.INISOnline.desktop "$STAGING/"
           cp packaging/linux/com.aricummings.INISOnline.metainfo.xml "$STAGING/"
-          sudo apt-get update && sudo apt-get install -y librsvg2-bin
           rsvg-convert -w 256 -h 256 game/icon.svg -o "$STAGING/icon.png"
       - name: Build Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
@@ -152,10 +160,24 @@ jobs:
           APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
         run: |
+          if [ -z "$APPLE_CERT_P12" ]; then
+            echo "::error::APPLE_CERT_P12 secret is empty. Set it to \`base64 -w0 cert.p12\`."
+            exit 1
+          fi
+          if [ -z "$APPLE_CERT_PASSWORD" ]; then
+            echo "::warning::APPLE_CERT_PASSWORD is empty — treating the .p12 as unencrypted."
+          fi
           CERT_PATH=$RUNNER_TEMP/certificate.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           KEYCHAIN_PASSWORD=$(openssl rand -hex 16)
           echo "$APPLE_CERT_P12" | base64 --decode > "$CERT_PATH"
+          # Sanity-check the .p12 decodes and its password matches BEFORE importing to
+          # keychain (openssl prints a much clearer error than `security import`).
+          if ! openssl pkcs12 -in "$CERT_PATH" -passin "pass:$APPLE_CERT_PASSWORD" \
+                              -nokeys -noout 2>/dev/null; then
+            echo "::error::Cannot decrypt APPLE_CERT_P12 with APPLE_CERT_PASSWORD. Check the secret values."
+            exit 1
+          fi
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
