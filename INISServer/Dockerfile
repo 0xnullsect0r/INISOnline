@@ -13,7 +13,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app ./
 
-# Serve on port 80 (reverse proxy terminates TLS upstream -> inis.aricummings.com).
+# Serve on port 80 (reverse proxy terminates TLS upstream -> inis.nullsect0r.dev).
 ENV ASPNETCORE_URLS=http://+:80
 EXPOSE 80
 ENTRYPOINT ["dotnet", "INISServer.dll"]

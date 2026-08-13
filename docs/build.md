@@ -46,7 +46,7 @@ the project settings (`Session.InitFromProject`), so each build can target a dif
 backend. Override it for an export, e.g.:
 `godot --headless --export-release "Linux" out --custom-features ...` then edit the
 setting, or maintain per-target `project.godot` overrides. Default:
-`https://inis.aricummings.com`.
+`https://inis.nullsect0r.dev`.
 
 ## Cross-platform export (Phase 9)
 Export presets live in `game/export_presets.cfg` (one per platform). Install the

@@ -2,7 +2,7 @@
 #
 # Pulls the prebuilt server image published by `.github/workflows/release.yml`
 # on every `v*` tag. The API is published on host port 80 for the upstream
-# reverse proxy that fronts inis.aricummings.com (it terminates TLS and
+# reverse proxy that fronts inis.nullsect0r.dev (it terminates TLS and
 # forwards to this service).
 #
 # Deploy on a fresh box:

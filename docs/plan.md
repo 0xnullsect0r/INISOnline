@@ -113,7 +113,7 @@ Martinez, Matagot, 2016) — a Celtic-mythology card-drafting / area-control gam
 playable on macOS, Windows, Linux, Android and iOS, built in **Godot**. It must
 support online multiplayer through a single **centralized authoritative server**
 (`INISServer`, ASP.NET Core / .NET 10, Scalar docs, one `docker compose`, served
-on port 80 behind a reverse proxy at `inis.aricummings.com`), with **authenticated**
+on port 80 behind a reverse proxy at `inis.nullsect0r.dev`), with **authenticated**
 accounts (username/password) and friend requests. No progression/leveling.
 
 The repo (`INISOnline`) is currently empty except for `LICENSE`. Greenfield build.

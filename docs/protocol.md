@@ -6,7 +6,7 @@ host in the client). Transport: **WebSocket**, **JSON** messages. The host is al
 broadcasts *state*.
 
 ## Connection
-- Online: `wss://inis.aricummings.com/ws/game/{gameId}?access_token=<JWT>`.
+- Online: `wss://inis.nullsect0r.dev/ws/game/{gameId}?access_token=<JWT>`.
 - LAN: `ws://<host-ip>:<port>/ws/game/{gameId>` (discovery via UDP broadcast).
 - On connect the host sends `StateSync` (the player's redacted view) + a `TurnPrompt`.
 

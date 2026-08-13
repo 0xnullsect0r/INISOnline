@@ -9,7 +9,7 @@ namespace INISOnline.Net;
 public static class Session
 {
     /// <summary>Base REST endpoint. The reverse proxy fronts the server at this host.</summary>
-    public static string ServerUrl { get; set; } = "https://inis.aricummings.com";
+    public static string ServerUrl { get; set; } = "https://inis.nullsect0r.dev";
 
     /// <summary>
     /// Lets each build ship a different server endpoint via the

@@ -41,7 +41,7 @@ text (never the publisher's verbatim wording). Keep it that way.
 - **Server:** ASP.NET Core **.NET 10**, **Scalar** API docs, **PostgreSQL + EF
   Core**, **JWT access + refresh** auth, **friend requests**, **no** progression/
   leveling. One **`docker compose`**, API on **port 80** behind a reverse proxy at
-  **inis.aricummings.com** (proxy terminates TLS). `INISServer/` is kept
+  **inis.nullsect0r.dev** (proxy terminates TLS). `INISServer/` is kept
   **extraction-ready** to later become its own repo/submodule.
 - **Release CI/CD (Phase 12):** tag-driven GitHub Actions building `.msi`, `.dmg`,
   Flatpak, AppImage, `.ipa`, `.apk`, and the server image.
