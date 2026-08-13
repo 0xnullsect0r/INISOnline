@@ -171,13 +171,9 @@ jobs:
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           KEYCHAIN_PASSWORD=$(openssl rand -hex 16)
           echo "$APPLE_CERT_P12" | base64 --decode > "$CERT_PATH"
-          # Sanity-check the .p12 decodes and its password matches BEFORE importing to
-          # keychain (openssl prints a much clearer error than `security import`).
-          if ! openssl pkcs12 -in "$CERT_PATH" -passin "pass:$APPLE_CERT_PASSWORD" \
-                              -nokeys -noout 2>/dev/null; then
-            echo "::error::Cannot decrypt APPLE_CERT_P12 with APPLE_CERT_PASSWORD. Check the secret values."
-            exit 1
-          fi
+          # No openssl preflight: Keychain-exported .p12 files use legacy RC2/3DES which
+          # openssl 3.x refuses by default (needs `-legacy`), and `security import` below
+          # is the source of truth anyway — if it fails, the message is clear enough.
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
