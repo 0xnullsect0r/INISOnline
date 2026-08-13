@@ -32,7 +32,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build & push
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}/inisserver
+          # GHCR requires the image path (owner/repo/image) to be all lowercase.
+          # github.repository is "0xnullsect0r/INISOnline" (mixed case) — lowercase it.
+          IMAGE=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')/inisserver
           TAG=${GITHUB_REF_NAME}
           docker build -f INISServer/Dockerfile -t "$IMAGE:$TAG" -t "$IMAGE:latest" .
           docker push "$IMAGE:$TAG"
