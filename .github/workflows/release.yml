@@ -53,8 +53,21 @@ jobs:
           IMAGE=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')/inisserver
           TAG=${RELEASE_VERSION}
           docker build -f INISServer/Dockerfile -t "$IMAGE:$TAG" -t "$IMAGE:latest" .
-          docker push "$IMAGE:$TAG"
-          docker push "$IMAGE:latest"
+
+          # GHCR intermittently returns "unknown blob" during concurrent layer
+          # uploads (transient dedup race). Retry each push with exponential backoff.
+          push_with_retry() {
+            local ref="$1"
+            for attempt in 1 2 3 4 5; do
+              if docker push "$ref"; then return 0; fi
+              echo "::warning::docker push $ref failed on attempt $attempt (GHCR transient); retrying..."
+              sleep $((attempt * attempt * 2))
+            done
+            echo "::error::docker push $ref failed after 5 attempts."
+            return 1
+          }
+          push_with_retry "$IMAGE:$TAG"
+          push_with_retry "$IMAGE:latest"
 
   # ---------------------------------------------------------------- Linux (.flatpak)
   linux-flatpak:
