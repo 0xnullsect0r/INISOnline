@@ -16,8 +16,11 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.0" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.0.0" />
+    <!-- Pin transitive Microsoft.OpenApi past GHSA-v5pm-xwqc-g5wc (CVE-2026-49451):
+         circular schema references cause stack overflow. Patched in 2.7.5. We only
+         serve OpenAPI, don't parse untrusted docs — but avoid the flagged version anyway. -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
   </ItemGroup>
 
   <ItemGroup>
