@@ -36,3 +36,6 @@ window/handheld/orientation="landscape"
 
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="mobile"
+; Required by Godot 4.4 to export for macOS arm64 / universal (and Android / iOS).
+; With this off, the macOS export tool refuses to run for anything but x86_64.
+textures/vram_compression/import_etc2_astc=true
