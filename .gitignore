@@ -23,6 +23,7 @@ game/obj/
 build/
 publish/
 packaging/linux/export-staging/
+.flatpak-builder/
 *.flatpak
 *.msi
 *.dmg

@@ -103,7 +103,9 @@ jobs:
           godot --headless --path game --export-release "Windows Desktop" \
             "$GITHUB_WORKSPACE/publish/INISOnline.exe"
       - name: Install WiX
-        run: dotnet tool install --global wix
+        # Pin to v5 — v7 requires accepting the OSMF EULA (WIX7015). v5 supports the
+        # `<Files Include>` harvester used by INISOnline.wxs.
+        run: dotnet tool install --global wix --version 5.0.2
       - name: Build MSI
         run: wix build packaging/windows/INISOnline.wxs -d ExportDir=publish -o INISOnline.msi
       - uses: actions/upload-artifact@v4
@@ -143,12 +145,26 @@ jobs:
             -k "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" \
             "$KEYCHAIN_PATH"
+          # Put the temp keychain first in the search list so codesign finds our cert.
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain
+          # Discover the Developer ID identity from the just-installed cert and inject it
+          # into the Godot macOS export preset (empty string in the repo — filled per-build).
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
+            | awk -F'"' '/Developer ID Application/ {print $2; exit}')
+          if [ -z "$IDENTITY" ]; then
+            echo "::error::No 'Developer ID Application' identity found in APPLE_CERT_P12."
+            security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
+            exit 1
+          fi
+          echo "Signing identity: $IDENTITY"
+          # Inject the Developer ID identity into the macOS export preset (empty in the
+          # repo — filled per-build from the just-installed cert).
+          /usr/bin/sed -i.bak "s|codesign/identity=\"\"|codesign/identity=\"$IDENTITY\"|" \
+            game/export_presets.cfg
+          rm -f game/export_presets.cfg.bak
       - name: Build C# (export config)
         run: dotnet build game/INISOnline.sln -c ExportRelease
       - name: Export macOS (.dmg)
-        env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           mkdir -p build/macos
           godot --headless --path game --export-release "macOS" \
